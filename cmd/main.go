@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/MrDjeb/tg-bot-kvartirant/pkg/config"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/telegram"
 
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -15,7 +16,10 @@ func cherr(err error) {
 }
 
 func main() {
-	bot, err := tg.NewBotAPI("5150854501:AAHM8auF6KgpeHIbw2BHSVMJ5CRPshzYU5s")
+	cfg, err := config.Init()
+	cherr(err)
+
+	bot, err := tg.NewBotAPI(cfg.TgToken)
 	cherr(err)
 
 	bot.Debug = true
