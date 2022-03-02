@@ -1,0 +1,17 @@
+text:
+  buttons:
+    tenant:
+      water1: "Вода"
+      water:
+        hot_w2: "Внести горчую воду"
+        cold_w2: "Внести холодную воду"
+      receipt1: "Квитанция"
+      receipt:
+        add_month2: "За какой месяц"
+        add_amount2: "Какая сумма"
+        add_receipt2: "Приложите квитанцию"
+      report1: "Сообщения о поломке"
+    admin:
+      rooms1: "1,2,3,4"
+  response:
+    start: "Привет! Я бот „Квартирант“.\nПомогаю сдавать в аренду квартиры."

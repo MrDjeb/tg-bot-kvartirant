@@ -4,10 +4,13 @@ import (
 	"log"
 
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/config"
+	"github.com/MrDjeb/tg-bot-kvartirant/pkg/database"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/telegram"
 
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
+
+var DBScorer database.DBScorer
 
 func cherr(err error) {
 	if err != nil {
@@ -24,7 +27,7 @@ func main() {
 
 	bot.Debug = true
 
-	tgBot := telegram.NewBot(bot)
+	tgBot := telegram.NewBot(bot, cfg.Text)
 	cherr(tgBot.Start())
 
 }
