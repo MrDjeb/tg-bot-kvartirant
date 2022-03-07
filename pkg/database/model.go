@@ -14,21 +14,36 @@ type DBTable interface {
 	Delete(id int64) error
 }
 
-type TelegramID int64
+/*type TelegramID int64
 type ScoreM3 uint16
-type AmountRub uint
+type AmountRUB uint*/
+
+type Tables struct {
+	Scorer  DBScorer
+	Payment DBPayment
+	Tenant  DBTenant
+	Admin   DBAdmin
+}
 
 type Scorer struct {
-	IdTenant TelegramID
-	Hot_w    ScoreM3 // 0,00 - 65,536 m3
-	Cold_w   ScoreM3 // 0,00 - 65,536 m3
+	IdTenant int64
+	Hot_w    uint16 // 0,00 - 65,536 m3
+	Cold_w   uint16 // 0,00 - 65,536 m3
 	Date     time.Time
 }
 
 type Payment struct {
-	IdTenant  TelegramID
-	Amount    AmountRub // 0 - 4294967296 Rub
+	IdTenant  int64
+	Amount    uint // 0 - 4294967296 Rub
 	PayMoment time.Time
 	Date      time.Time
 	Photo     image.Image
+}
+
+type Tenant struct {
+	Id int64
+}
+
+type Admin struct {
+	Id int64
 }

@@ -1,69 +1,55 @@
 package telegram
 
 import (
-	"fmt"
+	"errors"
 
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-const (
-	cmdStart = "start"
-	msHi     = "Hi"
-)
-
-func (b *Bot) handleCommand(message *tg.Message) error {
-	switch message.Command() {
-	case cmdStart:
-		return b.handleStartCmd(message)
+func (b *Bot) handleBack(update *tg.Update) error {
+	flagT, flagA := b.DB.Tenant.IsExist(update.CallbackQuery.From.ID), b.DB.Admin.IsExist(update.CallbackQuery.From.ID)
+	switch {
+	case flagT && flagA:
+		return errors.New("incorrect database data: userID in double table")
+	case flagT:
+		return b.TenantHandlerClb(update)
+	case flagA:
+		return b.AdminHandlerClb(update)
 	default:
-		return b.handleUnknownCmd(message)
+		return nil
 	}
 }
 
-// +++Сommands+++
-func (b *Bot) handleStartCmd(message *tg.Message) error {
-	msg := tg.NewMessage(message.Chat.ID, b.text.Response.Start)
-	msg.ReplyMarkup = b.buttons.Tenant.keyboard
-	_, err := b.bot.Send(msg)
-	return err
-}
-
-func (b *Bot) handleUnknownCmd(message *tg.Message) error {
-	msg := tg.NewMessage(message.Chat.ID, b.text.Response.Unknown_cmd)
-	_, err := b.bot.Send(msg)
-	return err
-} // +++Сommands+++
-
-func (b *Bot) handleMessage(message *tg.Message) error {
-	switch message.Text {
-	case msHi:
-		return b.handleHiMs(message)
+func (b *Bot) handleCmd(message *tg.Message) error {
+	flagT, flagA := b.DB.Tenant.IsExist(message.From.ID), b.DB.Admin.IsExist(message.From.ID)
+	switch {
+	case flagT && flagA:
+		return errors.New("incorrect database data: userID in double table")
+	case flagT:
+		return b.TenantHandlerCmd(message)
+	case flagA:
+		return b.AdminHandlerCmd(message)
 	default:
-		return b.handleUnknownMs(message)
+		return nil
 	}
-
 }
 
-// +++Messege+++
-func (b *Bot) handleHiMs(message *tg.Message) error {
-	msg := tg.NewMessage(message.Chat.ID, fmt.Sprintf("Hello, %s!", message.From.FirstName))
-	_, err := b.bot.Send(msg)
+func (b *Bot) handleMs(message *tg.Message) error {
+	flagT, flagA := b.DB.Tenant.IsExist(message.From.ID), b.DB.Admin.IsExist(message.From.ID)
+	switch {
+	case flagT && flagA:
+		return errors.New("incorrect database data: UserID in double table")
+	case flagT:
+		return b.TenantHandlerMs(message)
+	case flagA:
+		return b.AdminHandlerMs(message)
+	default:
+		return nil
+	}
+}
+
+func (b *Bot) handleSendText(message *tg.Message, text string) error {
+	msg := tg.NewMessage(message.Chat.ID, text)
+	_, err := b.Api.Send(msg)
 	return err
 }
-func (b *Bot) handleUnknownMs(message *tg.Message) error {
-	msg := tg.NewMessage(message.Chat.ID, b.text.Response.Unknown_ms)
-	_, err := b.bot.Send(msg)
-	//fmt.Println(b.text)
-	return err
-} // +++Messege+++
-
-/*
-
-2022/03/02 19:57:39 Endpoint: getUpdates, response: {"ok":true,"result":[{"update_id":486042501,
-"message":{"message_id":77,"from":{"id":657322168,"is_bot":false,"first_name":"MrDjeb","username":"MrDjeb","language_code":"ru"},
-"chat":{"id":657322168,"first_name":"MrDjeb","username":"MrDjeb","type":"private"},"date":1646240259,"text":"5"}}]}
-
-2022/03/02 19:57:42 Endpoint: getUpdates, response: {"ok":true,"result":[{"update_id":486042502,
-"message":{"message_id":79,"from":{"id":657322168,"is_bot":false,"first_name":"MrDjeb","username":"MrDjeb","language_code":"ru"},
-"chat":{"id":657322168,"first_name":"MrDjeb","username":"MrDjeb","type":"private"},"date":1646240262,"text":"kkk"}}]}
-*/

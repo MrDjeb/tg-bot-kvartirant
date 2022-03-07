@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/mattn/go-sqlite3"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -49,7 +48,7 @@ func (r *DBScorer) Insert(sc Scorer) (*Scorer, error) {
 	if err != nil {
 		return nil, err
 	}
-	sc.IdTenant = TelegramID(id)
+	sc.IdTenant = id
 
 	return &sc, nil
 }
@@ -89,7 +88,43 @@ func (r *DBPayment) Insert(pa Payment) (*Payment, error) {
 	if err != nil {
 		return nil, err
 	}
-	pa.IdTenant = TelegramID(id)
+	pa.IdTenant = id
 
 	return &pa, nil
+}
+
+type DBTenant struct {
+	DB *sql.DB
+}
+
+func (r *DBTenant) Migrate() error {
+	query := `
+    CREATE TABLE IF NOT EXISTS tenant(
+        idTenant INTEGER
+    );`
+
+	_, err := r.DB.Exec(query)
+	return err
+}
+
+func (r *DBTenant) IsExist(tgid int64) bool {
+
+	return true
+}
+
+type DBAdmin struct {
+	DB *sql.DB
+}
+
+func (r *DBAdmin) IsExist(tgid int64) bool {
+	return false
+
+}
+
+func Init() (Tables, error) {
+	db, err := sql.Open("sqlite3", "bot.db")
+	if err != nil {
+		return Tables{}, err
+	}
+	return Tables{DBScorer{DB: db}, DBPayment{DB: db}, DBTenant{DB: db}, DBAdmin{DB: db}}, err
 }

@@ -22,12 +22,15 @@ func main() {
 	cfg, err := config.Init()
 	cherr(err)
 
+	db, err := database.Init()
+	cherr(err)
+
 	bot, err := tg.NewBotAPI(cfg.TgToken)
 	cherr(err)
 
 	bot.Debug = true
 
-	tgBot := telegram.NewBot(bot, cfg.Text)
+	tgBot := telegram.NewBot(bot, cfg.Text, db)
 	cherr(tgBot.Start())
 
 }
