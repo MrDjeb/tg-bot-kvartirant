@@ -28,13 +28,13 @@ func NewBot(api *tg.BotAPI, text config.Text, db database.Tables) *Bot {
 }
 
 func (b *Bot) Start() error {
+	if err := b.DB.Tenant.Insert(database.Tenant{IdTg: 410345981}); err != nil {
+		return err
+	}
+
 	u := tg.NewUpdate(0)
 	u.Timeout = 60
 	updates := b.Api.GetUpdatesChan(u)
-
-	if err := b.DB.Tenant.Migrate(); err != nil {
-		return err
-	}
 
 	for update := range updates {
 		switch {
@@ -48,16 +48,17 @@ func (b *Bot) Start() error {
 				return err
 			}
 			continue
+		case update.Message.Photo != nil:
+			if err := b.handlePh(update.Message); err != nil {
+				return err
+			}
+			continue
 		case update.Message.Text != "":
 			if err := b.handleMs(update.Message); err != nil {
 				return err
 			}
 			continue
 		}
-
-		//_, err := DBScorer.Insert(database.Scorer{update.Message.From.ID, 0, 0, time.Date(2009, 1, 1, 12, 0, 0, 0, time.UTC)})
-		//cherr(err)
-
 	}
 	return nil
 }

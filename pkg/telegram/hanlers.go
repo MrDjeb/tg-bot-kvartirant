@@ -7,7 +7,15 @@ import (
 )
 
 func (b *Bot) handleBack(update *tg.Update) error {
-	flagT, flagA := b.DB.Tenant.IsExist(update.CallbackQuery.From.ID), b.DB.Admin.IsExist(update.CallbackQuery.From.ID)
+	flagT, err := b.DB.Tenant.IsExist(update.CallbackQuery.From.ID)
+	if err != nil {
+		return err
+	}
+	flagA, err := b.DB.Admin.IsExist(update.CallbackQuery.From.ID)
+	if err != nil {
+		return err
+	}
+
 	switch {
 	case flagT && flagA:
 		return errors.New("incorrect database data: userID in double table")
@@ -21,7 +29,15 @@ func (b *Bot) handleBack(update *tg.Update) error {
 }
 
 func (b *Bot) handleCmd(message *tg.Message) error {
-	flagT, flagA := b.DB.Tenant.IsExist(message.From.ID), b.DB.Admin.IsExist(message.From.ID)
+	flagT, err := b.DB.Tenant.IsExist(message.From.ID)
+	if err != nil {
+		return err
+	}
+	flagA, err := b.DB.Admin.IsExist(message.From.ID)
+	if err != nil {
+		return err
+	}
+
 	switch {
 	case flagT && flagA:
 		return errors.New("incorrect database data: userID in double table")
@@ -34,8 +50,36 @@ func (b *Bot) handleCmd(message *tg.Message) error {
 	}
 }
 
+func (b *Bot) handlePh(message *tg.Message) error {
+	flagT, err := b.DB.Tenant.IsExist(message.From.ID)
+	if err != nil {
+		return err
+	}
+	flagA, err := b.DB.Admin.IsExist(message.From.ID)
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case flagT && flagA:
+		return errors.New("incorrect database data: UserID in double table")
+	case flagT:
+		return b.TenantHandlerPh(message)
+	default:
+		return nil
+	}
+}
+
 func (b *Bot) handleMs(message *tg.Message) error {
-	flagT, flagA := b.DB.Tenant.IsExist(message.From.ID), b.DB.Admin.IsExist(message.From.ID)
+	flagT, err := b.DB.Tenant.IsExist(message.From.ID)
+	if err != nil {
+		return err
+	}
+	flagA, err := b.DB.Admin.IsExist(message.From.ID)
+	if err != nil {
+		return err
+	}
+
 	switch {
 	case flagT && flagA:
 		return errors.New("incorrect database data: UserID in double table")
@@ -48,8 +92,8 @@ func (b *Bot) handleMs(message *tg.Message) error {
 	}
 }
 
-func (b *Bot) handleSendText(message *tg.Message, text string) error {
-	msg := tg.NewMessage(message.Chat.ID, text)
+func (b *Bot) handleSendText(id int64, text string) error {
+	msg := tg.NewMessage(id, text)
 	_, err := b.Api.Send(msg)
 	return err
 }

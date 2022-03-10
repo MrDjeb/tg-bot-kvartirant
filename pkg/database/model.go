@@ -1,10 +1,5 @@
 package database
 
-import (
-	"image"
-	"time"
-)
-
 type DBTable interface {
 	Migrate() error
 	Insert(r DBTable) (*DBTable, error)
@@ -26,24 +21,24 @@ type Tables struct {
 }
 
 type Scorer struct {
-	IdTenant int64
-	Hot_w    uint16 // 0,00 - 65,536 m3
-	Cold_w   uint16 // 0,00 - 65,536 m3
-	Date     time.Time
+	IdTg   int64
+	Hot_w  uint16 // 0,00 - 65,536 m3
+	Cold_w uint16 // 0,00 - 65,536 m3
+	Date   string
 }
 
 type Payment struct {
-	IdTenant  int64
+	IdTg      int64
 	Amount    uint // 0 - 4294967296 Rub
-	PayMoment time.Time
-	Date      time.Time
-	Photo     image.Image
+	PayMoment string
+	Date      string
+	Photo     []byte
 }
 
 type Tenant struct {
-	Id int64
+	IdTg int64
 }
 
 type Admin struct {
-	Id int64
+	IdTg int64
 }
