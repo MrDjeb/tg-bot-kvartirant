@@ -1,12 +1,8 @@
 package database
 
-type DBTable interface {
+type DBTabler interface {
 	Migrate() error
-	Insert(r DBTable) (*DBTable, error)
-	All() ([]DBTable, error)
-	GetByName(name string) (*DBTable, error)
-	Update(id int64, updated DBTable) (*DBTable, error)
-	Delete(id int64) error
+	Insert(r DBTabler) error
 }
 
 /*type TelegramID int64

@@ -10,8 +10,6 @@ import (
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-var DBScorer database.DBScorer
-
 func cherr(err error) {
 	if err != nil {
 		log.Fatalln(err)
@@ -21,16 +19,14 @@ func cherr(err error) {
 func main() {
 	cfg, err := config.Init()
 	cherr(err)
-
 	db, err := database.Init()
 	cherr(err)
-
-	bot, err := tg.NewBotAPI(cfg.TgToken)
+	botAPI, err := tg.NewBotAPI(cfg.TgToken)
 	cherr(err)
 
-	bot.Debug = true
+	botAPI.Debug = true
 
-	tgBot := telegram.NewBot(bot, cfg.Text, db)
+	tgBot := telegram.NewBot(botAPI, cfg.Text, db)
 	cherr(tgBot.Start())
 
 }

@@ -6,8 +6,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type ButText string
-
 type Text struct {
 	Buttons
 	Response
@@ -25,26 +23,26 @@ type Response struct {
 }
 
 type Tenant struct {
-	Water1   ButText `mapstructure:"water1"`
-	Receipt1 ButText `mapstructure:"receipt1"`
-	Report1  ButText `mapstructure:"report1"`
+	Water1   string `mapstructure:"water1"`
+	Receipt1 string `mapstructure:"receipt1"`
+	Report1  string `mapstructure:"report1"`
 	Water
 	Receipt
 }
 
 type Admin struct {
-	Rooms1 ButText `mapstructure:"rooms1"`
+	Rooms1 string `mapstructure:"rooms1"`
 }
 
 type Water struct {
-	Hot_w2  ButText `mapstructure:"hot_w2"`
-	Cold_w2 ButText `mapstructure:"cold_w2"`
+	Hot_w2  string `mapstructure:"hot_w2"`
+	Cold_w2 string `mapstructure:"cold_w2"`
 }
 
 type Receipt struct {
-	Add_month2   ButText `mapstructure:"add_month2"`
-	Add_amount2  ButText `mapstructure:"add_amount2"`
-	Add_receipt2 ButText `mapstructure:"add_receipt2"`
+	Add_month2   string `mapstructure:"add_month2"`
+	Add_amount2  string `mapstructure:"add_amount2"`
+	Add_receipt2 string `mapstructure:"add_receipt2"`
 }
 
 type Config struct {

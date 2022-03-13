@@ -6,59 +6,101 @@ import (
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+var tgBot *Bot
+
 type Bot struct {
-	Api   *tg.BotAPI
+	API   API
 	Text  config.Text
+	State State
 	But   Buttons
 	DB    database.Tables
-	State State
+	Handler
+	Tenant User
+	Admin  User
 }
 
 func NewBot(api *tg.BotAPI, text config.Text, db database.Tables) *Bot {
 	b := &Bot{
-		Api:   api,
-		Text:  text,
-		But:   Buttons{},
-		DB:    db,
-		State: State{},
+		API:    API{api},
+		Text:   text,
+		State:  State{},
+		But:    Buttons{},
+		DB:     db,
+		Tenant: User{},
+		Admin:  User{},
 	}
-	b.butInit()
 	b.State.Erase()
 	return b
 }
 
+func (b *Bot) Init() {
+	b.But = NewButtons()
+	b.Tenant = User{NewTenantHandler()}
+	b.Admin = User{NewTenantHandler()}
+}
+
+type API struct {
+	*tg.BotAPI
+}
+
+func (a API) SendText(u *tg.Update, text string) error {
+	msg := tg.NewMessage(u.SentFrom().ID, text)
+	_, err := a.Send(msg)
+	return err
+}
+
+type User struct {
+	Handler
+}
+
 func (b *Bot) Start() error {
-	if err := b.DB.Tenant.Insert(database.Tenant{IdTg: 410345981}); err != nil {
+	/*if err := b.DB.Tenant.Insert(database.Tenant{IdTg: 410345981}); err != nil {
 		return err
-	}
+	}*/
+
+	tgBot = b
+	tgBot.Init()
 
 	u := tg.NewUpdate(0)
 	u.Timeout = 60
-	updates := b.Api.GetUpdatesChan(u)
+	updates := b.API.GetUpdatesChan(u)
 
-	for update := range updates {
+	for u := range updates {
+
 		switch {
-		case update.CallbackQuery != nil:
-			if err := b.handleBack(&update); err != nil {
+		case u.CallbackQuery != nil:
+			if err := b.Callback(&u); err != nil {
 				return err
 			}
 			continue
-		case update.Message.IsCommand():
-			if err := b.handleCmd(update.Message); err != nil {
+		case u.Message.IsCommand():
+			if err := b.Command(&u); err != nil {
 				return err
 			}
 			continue
-		case update.Message.Photo != nil:
-			if err := b.handlePh(update.Message); err != nil {
+		case u.Message.Photo != nil:
+			if err := b.Photo(&u); err != nil {
 				return err
 			}
 			continue
-		case update.Message.Text != "":
-			if err := b.handleMs(update.Message); err != nil {
+		case u.Message.Text != "":
+			if err := b.Message(&u); err != nil {
 				return err
 			}
 			continue
 		}
 	}
 	return nil
+}
+
+func (b *Bot) FromWhom(u *tg.Update) (bool, bool, error) {
+	flagT, err := b.DB.Tenant.IsExist(u.SentFrom().ID)
+	if err != nil {
+		return false, false, nil
+	}
+	flagA, err := b.DB.Admin.IsExist(u.SentFrom().ID)
+	if err != nil {
+		return false, false, err
+	}
+	return flagT, flagA, nil
 }

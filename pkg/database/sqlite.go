@@ -54,10 +54,10 @@ func (r *DBScorer) Insert(sc Scorer) error {
 	return nil
 }
 
-func (s DBScorer) IsExistDay(date string) (bool, error) {
-	log.Println("SELECT date FROM scorer WHERE date = ?;", date)
+func (s DBScorer) IsExistDay(tgId int64, date string) (bool, error) {
+	log.Println("SELECT date FROM scorer WHERE idTenant = ? AND date = ?;", tgId, date)
 
-	rows, err := s.DB.Query("SELECT date FROM scorer WHERE date = ?;", date)
+	rows, err := s.DB.Query("SELECT date FROM scorer WHERE idTenant = ? AND date = ?;", tgId, date)
 	if err != nil {
 		return false, err
 	}
@@ -65,10 +65,10 @@ func (s DBScorer) IsExistDay(date string) (bool, error) {
 	return rows.Next(), nil
 }
 
-func (s DBScorer) UpdateCold_w(score uint16, date string) error {
-	log.Println("UPDATE scorer SET cold_w = ? WHERE date = ?", score, date)
+func (s DBScorer) UpdateCold_w(tgId int64, score uint16, date string) error {
+	log.Println("UPDATE scorer SET cold_w = ? WHERE idTenant = ? AND date = ?", score, tgId, date)
 
-	result, err := s.DB.Exec("UPDATE scorer SET cold_w = ? WHERE date = ?", score, date)
+	result, err := s.DB.Exec("UPDATE scorer SET cold_w = ? WHERE idTenant = ? AND date = ?", score, tgId, date)
 	if err != nil {
 		return err
 	}
@@ -82,10 +82,10 @@ func (s DBScorer) UpdateCold_w(score uint16, date string) error {
 	return nil
 }
 
-func (s DBScorer) UpdateHot_w(score uint16, date string) error {
-	log.Println("UPDATE scorer SET hot_w = ? WHERE date = ?", score, date)
+func (s DBScorer) UpdateHot_w(tgId int64, score uint16, date string) error {
+	log.Println("UPDATE scorer SET hot_w = ? WHERE idTenant = ? AND date = ?", score, tgId, date)
 
-	result, err := s.DB.Exec("UPDATE scorer SET hot_w = ? WHERE date = ?", score, date)
+	result, err := s.DB.Exec("UPDATE scorer SET hot_w = ? WHERE idTenant = ? AND date = ?", score, tgId, date)
 	if err != nil {
 		return err
 	}
