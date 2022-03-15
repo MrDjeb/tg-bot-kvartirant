@@ -13,27 +13,6 @@ import (
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type InlineInputer interface {
-	HandleInput(u *tg.Update) error
-	Callback(u *tg.Update) error
-}
-
-type TenantInlineInput struct {
-	Cold_w2  InlineInputer
-	Hot_w2   InlineInputer
-	Month2   InlineInputer
-	Amount2  InlineInputer
-	Receipt2 InlineInputer
-}
-
-func (i *TenantInlineInput) New() {
-	i.Cold_w2 = &Cold_w2{}
-	i.Hot_w2 = &Hot_w2{}
-	i.Month2 = &Month2{}
-	i.Amount2 = &Amount2{}
-	i.Receipt2 = &Receipt2{}
-}
-
 const LAYOUT = "2006-01-02"
 
 func tbool(n int) bool {
@@ -66,129 +45,6 @@ func downloadFile(URL string) ([]byte, error) {
 
 	return ioutil.ReadAll(resp.Body)
 
-}
-
-type Cold_w2 struct {
-	tg.InlineKeyboardButton
-	InlineInputer
-}
-
-type Hot_w2 struct {
-	tg.InlineKeyboardButton
-	InlineInputer
-}
-
-type Month2 struct {
-	tg.InlineKeyboardButton
-	InlineInputer
-}
-type Amount2 struct {
-	tg.InlineKeyboardButton
-	InlineInputer
-}
-type Receipt2 struct {
-	tg.InlineKeyboardButton
-	InlineInputer
-}
-
-func (r *Cold_w2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введите показания с счётчика холодной воды. К примеру: 34,56")
-	if _, err := tgBot.API.Request(callback); err != nil {
-		return err
-	}
-	if err := tgBot.API.SendText(u, "Введите показания с счётчика холодной воды. К примеру: 34,56"); err != nil {
-		return err
-	}
-	tgBot.State.Erase()
-	tgBot.State.TenantCold_w2 = true
-	return nil
-}
-
-func (r *Hot_w2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введите показания с счётчика горячей воды. К примеру: 34,56")
-	if _, err := tgBot.API.Request(callback); err != nil {
-		return err
-	}
-	msg := tg.NewMessage(u.CallbackQuery.Message.Chat.ID, "Введите показания с счётчика горячей воды. К примеру: 34,56")
-	if _, err := tgBot.API.Send(msg); err != nil {
-		return err
-	}
-	tgBot.State.Erase()
-	tgBot.State.TenantHot_w2 = true
-	return nil
-}
-
-func (r *Month2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введите номер месяца -- число от 1 до 12.")
-	if _, err := tgBot.API.Request(callback); err != nil {
-		return err
-	}
-	msg := tg.NewMessage(u.CallbackQuery.Message.Chat.ID, "Введите номер месяца -- число от 1 до 12.")
-	if _, err := tgBot.API.Send(msg); err != nil {
-		return err
-	}
-
-	switch {
-	case !tbool(tgBot.State.TenantPayment[0]) && !tbool(tgBot.State.TenantPayment[1]) && !tbool(tgBot.State.TenantPayment[2]):
-		tgBot.State.Erase()
-		tgBot.State.TenantPayment[0] = 1
-	case tgBot.State.TenantPayment[0] == 2:
-		tgBot.State.Erase()
-		tgBot.State.TenantPayment[0] = 1
-	default:
-		tgBot.State.CleanProcess()
-		tgBot.State.TenantPayment[0] = 1
-	}
-
-	return nil
-}
-
-func (r *Amount2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введиту сумму в рублях, которую вы оплатили. К примеру, 4500")
-	if _, err := tgBot.API.Request(callback); err != nil {
-		return err
-	}
-	msg := tg.NewMessage(u.CallbackQuery.Message.Chat.ID, "Введиту сумму в рублях, которую вы оплатили. К примеру, 4500")
-	if _, err := tgBot.API.Send(msg); err != nil {
-		return err
-	}
-
-	switch {
-	case !tbool(tgBot.State.TenantPayment[0]) && !tbool(tgBot.State.TenantPayment[1]) && !tbool(tgBot.State.TenantPayment[2]):
-		tgBot.State.Erase()
-		tgBot.State.TenantPayment[1] = 1
-	case tgBot.State.TenantPayment[1] == 2:
-		tgBot.State.Erase()
-		tgBot.State.TenantPayment[1] = 1
-	default:
-		tgBot.State.CleanProcess()
-		tgBot.State.TenantPayment[1] = 1
-	}
-	return nil
-}
-
-func (r *Receipt2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Пришлите скрин квитанции.")
-	if _, err := tgBot.API.Request(callback); err != nil {
-		return err
-	}
-	msg := tg.NewMessage(u.CallbackQuery.Message.Chat.ID, "Пришлите скрин квитанции.")
-	if _, err := tgBot.API.Send(msg); err != nil {
-		return err
-	}
-
-	switch {
-	case !tbool(tgBot.State.TenantPayment[0]) && !tbool(tgBot.State.TenantPayment[1]) && !tbool(tgBot.State.TenantPayment[2]):
-		tgBot.State.Erase()
-		tgBot.State.TenantPayment[2] = 1
-	case tgBot.State.TenantPayment[2] == 2:
-		tgBot.State.Erase()
-		tgBot.State.TenantPayment[2] = 1
-	default:
-		tgBot.State.CleanProcess()
-		tgBot.State.TenantPayment[2] = 1
-	}
-	return nil
 }
 
 func (b *Cold_w2) HandleInput(u *tg.Update) error {
@@ -308,7 +164,7 @@ func (r *Month2) HandleInput(u *tg.Update) error {
 		if err := tgBot.API.SendText(u, "Месяц успешно добавлен."); err != nil {
 			return err
 		}
-		if err := tgBot.Tenant.Handler.(*TenantHandler).Ms.Receipt1(u); err != nil {
+		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].ShowButtons(u); err != nil {
 			return err
 		}
 	}
@@ -349,7 +205,7 @@ func (r *Amount2) HandleInput(u *tg.Update) error {
 		if err := tgBot.API.SendText(u, "Cумма оплаты успешно добавлена."); err != nil {
 			return err
 		}
-		if err := tgBot.Tenant.Handler.(*TenantHandler).Ms.Receipt1(u); err != nil {
+		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].ShowButtons(u); err != nil {
 			return err
 		}
 	}
@@ -367,6 +223,7 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 		}
 		return nil
 	}
+	//fmt.Println(tg.FileID(fotos[2].FileID).UploadData()) Затычка в библиотеке, функция просто вызывает panic
 	fileURL, err := tgBot.API.GetFileDirectURL(fotos[2].FileID)
 	if err != nil {
 		return err
@@ -398,7 +255,7 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 		if err := tgBot.API.SendText(u, "Скрин квитанции успешно добавлен."); err != nil {
 			return err
 		}
-		if err := tgBot.Tenant.Handler.(*TenantHandler).Ms.Receipt1(u); err != nil {
+		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].ShowButtons(u); err != nil {
 			return err
 		}
 	}

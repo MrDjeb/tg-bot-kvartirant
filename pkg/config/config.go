@@ -6,14 +6,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Config struct {
+	TgToken string
+	Text
+}
 type Text struct {
 	Buttons
 	Response
 }
 
 type Buttons struct {
-	Tenant
-	Admin
+	Tenant Tenant
+	Admin  Admin
 }
 
 type Response struct {
@@ -26,12 +30,8 @@ type Tenant struct {
 	Water1   string `mapstructure:"water1"`
 	Receipt1 string `mapstructure:"receipt1"`
 	Report1  string `mapstructure:"report1"`
-	Water
-	Receipt
-}
-
-type Admin struct {
-	Rooms1 string `mapstructure:"rooms1"`
+	Water    Water
+	Receipt  Receipt
 }
 
 type Water struct {
@@ -40,14 +40,25 @@ type Water struct {
 }
 
 type Receipt struct {
-	Add_month2   string `mapstructure:"add_month2"`
-	Add_amount2  string `mapstructure:"add_amount2"`
-	Add_receipt2 string `mapstructure:"add_receipt2"`
+	Month2   string `mapstructure:"month2"`
+	Amount2  string `mapstructure:"amount2"`
+	Receipt2 string `mapstructure:"receipt2"`
 }
 
-type Config struct {
-	TgToken string
-	Text
+type Admin struct {
+	Rooms1    string `mapstructure:"rooms1"`
+	Settings1 string `mapstructure:"settings1"`
+	Rooms     Rooms
+	Settings  Settings
+}
+
+type Rooms struct {
+	R2 string `mapstructure:"r2"`
+}
+type Settings struct {
+	Edit2     string `mapstructure:"edit2"`
+	Contacts2 string `mapstructure:"contacts2"`
+	Reminder2 string `mapstructure:"reminder2"`
 }
 
 func Init() (*Config, error) {
@@ -87,7 +98,12 @@ func unmarshal(cfg *Config) error {
 	if err := viper.UnmarshalKey("text.buttons.admin", &cfg.Text.Buttons.Admin); err != nil {
 		return err
 	}
-
+	if err := viper.UnmarshalKey("text.buttons.admin.rooms", &cfg.Text.Buttons.Admin.Rooms); err != nil {
+		return err
+	}
+	if err := viper.UnmarshalKey("text.buttons.admin.settings", &cfg.Text.Buttons.Admin.Settings); err != nil {
+		return err
+	}
 	if err := viper.UnmarshalKey("text.response", &cfg.Text.Response); err != nil {
 		return err
 	}

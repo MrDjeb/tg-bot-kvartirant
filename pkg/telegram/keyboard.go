@@ -4,37 +4,56 @@ import (
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type keyboard tg.ReplyKeyboardMarkup
-type inKeyboard tg.InlineKeyboardMarkup
+type Keyboard tg.ReplyKeyboardMarkup
+type InKeyboard tg.InlineKeyboardMarkup
 
 type Buttons struct {
-	Tenant
-	Admin keyboard
+	Tenant Tenant
+	Admin  Admin
 }
 
 type Tenant struct {
-	keyboard keyboard
-	Water    inKeyboard
+	Keyboard Keyboard
+	Water    InKeyboard
 	Receipt  []tg.InlineKeyboardButton
+}
+
+type Admin struct {
+	Keyboard Keyboard
+	Rooms    InKeyboard
+	Settings InKeyboard
 }
 
 func NewButtons() Buttons {
 	return Buttons{
 		Tenant: Tenant{
-			keyboard: keyboard(tg.NewReplyKeyboard(
-				tg.NewKeyboardButtonRow(tg.NewKeyboardButton(string(tgBot.Text.Water1)), tg.NewKeyboardButton(string(tgBot.Text.Receipt1))),
-				tg.NewKeyboardButtonRow(tg.NewKeyboardButton(string(tgBot.Text.Report1))))),
+			Keyboard: Keyboard(tg.NewReplyKeyboard(
+				tg.NewKeyboardButtonRow(tg.NewKeyboardButton(tgBot.Text.Tenant.Water1), tg.NewKeyboardButton(tgBot.Text.Tenant.Receipt1)),
+				tg.NewKeyboardButtonRow(tg.NewKeyboardButton(tgBot.Text.Tenant.Report1)))),
 
-			Water: inKeyboard(tg.NewInlineKeyboardMarkup(
-				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(string(tgBot.Text.Water.Hot_w2), string(tgBot.Text.Water.Hot_w2)), tg.NewInlineKeyboardButtonData(string(tgBot.Text.Water.Cold_w2), string(tgBot.Text.Water.Cold_w2))))),
+			Water: InKeyboard(tg.NewInlineKeyboardMarkup(
+				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData((tgBot.Text.Tenant.Water.Hot_w2), (tgBot.Text.Tenant.Water.Hot_w2)),
+					tg.NewInlineKeyboardButtonData(tgBot.Text.Tenant.Water.Cold_w2, tgBot.Text.Tenant.Water.Cold_w2)))),
 
 			Receipt: tg.NewInlineKeyboardRow(
-				tg.NewInlineKeyboardButtonData(string(tgBot.Text.Receipt.Add_month2), string(tgBot.Text.Receipt.Add_month2)),
-				tg.NewInlineKeyboardButtonData(string(tgBot.Text.Receipt.Add_amount2), string(tgBot.Text.Receipt.Add_amount2)),
-				tg.NewInlineKeyboardButtonData(string(tgBot.Text.Receipt.Add_receipt2), string(tgBot.Text.Receipt.Add_receipt2)),
+				tg.NewInlineKeyboardButtonData(tgBot.Text.Tenant.Receipt.Month2, tgBot.Text.Tenant.Receipt.Month2),
+				tg.NewInlineKeyboardButtonData(tgBot.Text.Tenant.Receipt.Amount2, tgBot.Text.Tenant.Receipt.Amount2),
+				tg.NewInlineKeyboardButtonData(tgBot.Text.Tenant.Receipt.Receipt2, tgBot.Text.Tenant.Receipt.Receipt2),
 			),
 		},
-		Admin: keyboard(tg.NewReplyKeyboard(tg.NewKeyboardButtonRow(tg.NewKeyboardButton(string(tgBot.Text.Admin.Rooms1))))),
+		Admin: Admin{
+			Keyboard: Keyboard(tg.NewReplyKeyboard(
+				tg.NewKeyboardButtonRow(tg.NewKeyboardButton(tgBot.Text.Admin.Rooms1), tg.NewKeyboardButton(tgBot.Text.Admin.Settings1)))),
+
+			Rooms: InKeyboard(tg.NewInlineKeyboardMarkup(
+				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(tgBot.Text.Admin.Rooms.R2, tgBot.Text.Admin.Rooms.R2),
+					tg.NewInlineKeyboardButtonData("366", "366")))),
+
+			Settings: InKeyboard(tg.NewInlineKeyboardMarkup(
+				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(tgBot.Text.Admin.Settings.Edit2, tgBot.Text.Admin.Settings.Edit2)),
+				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(tgBot.Text.Admin.Settings.Contacts2, tgBot.Text.Admin.Settings.Contacts2)),
+				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(tgBot.Text.Admin.Settings.Reminder2, tgBot.Text.Admin.Settings.Reminder2)))),
+		},
 	}
 }
 
