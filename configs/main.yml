@@ -24,3 +24,9 @@ text:
     start: "Привет! Я бот „Квартирант“.\nПомогаю сдавать в аренду квартиры.\n\nДля отмены любой операции используйте команду /cancel"
     unknown_cmd: "Я не знаю такой команды  :(\n"
     unknown_ms: "Я не знаю как ответить :(\n"
+  common_command:
+    start: "start"
+    cancel: "cancel"
+    unknown: "unknown"
+  common_message:
+    hi: "Hi"

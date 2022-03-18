@@ -54,7 +54,7 @@ func (r *DBScorer) Insert(sc Scorer) error {
 	return nil
 }
 
-func (s DBScorer) IsExistDay(tgId int64, date string) (bool, error) {
+func (s DBScorer) IsExistDay(tgId TelegramID, date Date) (bool, error) {
 	log.Println("SELECT date FROM scorer WHERE idTenant = ? AND date = ?;", tgId, date)
 
 	rows, err := s.DB.Query("SELECT date FROM scorer WHERE idTenant = ? AND date = ?;", tgId, date)
@@ -65,7 +65,7 @@ func (s DBScorer) IsExistDay(tgId int64, date string) (bool, error) {
 	return rows.Next(), nil
 }
 
-func (s DBScorer) UpdateCold_w(tgId int64, score uint16, date string) error {
+func (s DBScorer) UpdateCold_w(tgId TelegramID, score ScoreM3, date Date) error {
 	log.Println("UPDATE scorer SET cold_w = ? WHERE idTenant = ? AND date = ?", score, tgId, date)
 
 	result, err := s.DB.Exec("UPDATE scorer SET cold_w = ? WHERE idTenant = ? AND date = ?", score, tgId, date)
@@ -82,7 +82,7 @@ func (s DBScorer) UpdateCold_w(tgId int64, score uint16, date string) error {
 	return nil
 }
 
-func (s DBScorer) UpdateHot_w(tgId int64, score uint16, date string) error {
+func (s DBScorer) UpdateHot_w(tgId TelegramID, score ScoreM3, date Date) error {
 	log.Println("UPDATE scorer SET hot_w = ? WHERE idTenant = ? AND date = ?", score, tgId, date)
 
 	result, err := s.DB.Exec("UPDATE scorer SET hot_w = ? WHERE idTenant = ? AND date = ?", score, tgId, date)
@@ -152,7 +152,7 @@ func (r *DBTenant) Migrate() error {
 	return err
 }
 
-func (r *DBTenant) IsExist(tgid int64) (bool, error) {
+func (r *DBTenant) IsExist(tgid TelegramID) (bool, error) {
 	log.Println("SELECT * FROM tenant WHERE idTenant = ?;", tgid)
 
 	rows, err := r.DB.Query("SELECT * FROM tenant WHERE idTenant = ?;", tgid)
@@ -195,7 +195,7 @@ func (r *DBAdmin) Migrate() error {
 	return err
 }
 
-func (r *DBAdmin) IsExist(tgid int64) (bool, error) {
+func (r *DBAdmin) IsExist(tgid TelegramID) (bool, error) {
 	log.Println("SELECT * FROM admin WHERE idAdmin = ?;", tgid)
 
 	rows, err := r.DB.Query("SELECT * FROM admin WHERE idAdmin = ?;", tgid)

@@ -13,6 +13,8 @@ type Config struct {
 type Text struct {
 	Buttons
 	Response
+	CommonCommand
+	CommonMessage
 }
 
 type Buttons struct {
@@ -26,6 +28,15 @@ type Response struct {
 	Unknown_ms  string `mapstructure:"unknown_ms"`
 }
 
+type CommonCommand struct {
+	Start   string `mapstructure:"start"`
+	Cancel  string `mapstructure:"cancel"`
+	Unknown string `mapstructure:"unknown"`
+}
+
+type CommonMessage struct {
+	Hi string `mapstructure:"hi"`
+}
 type Tenant struct {
 	Water1   string `mapstructure:"water1"`
 	Receipt1 string `mapstructure:"receipt1"`
@@ -105,6 +116,12 @@ func unmarshal(cfg *Config) error {
 		return err
 	}
 	if err := viper.UnmarshalKey("text.response", &cfg.Text.Response); err != nil {
+		return err
+	}
+	if err := viper.UnmarshalKey("text.common_command", &cfg.Text.CommonCommand); err != nil {
+		return err
+	}
+	if err := viper.UnmarshalKey("text.common_message", &cfg.Text.CommonMessage); err != nil {
 		return err
 	}
 

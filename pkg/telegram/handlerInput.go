@@ -9,14 +9,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MrDjeb/tg-bot-kvartirant/pkg/cache"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/database"
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 const LAYOUT = "2006-01-02"
 
+/*
 func tbool(n int) bool {
 	return !(n == 0)
+}*/
+
+func tint(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 func GetAverageDate(m uint8) string {
@@ -47,44 +56,6 @@ func downloadFile(URL string) ([]byte, error) {
 
 }
 
-func (b *Cold_w2) HandleInput(u *tg.Update) error {
-
-	tidyStr := strings.TrimSpace(strings.Replace(u.Message.Text, ",", ".", 1))
-	score, err := strconv.ParseFloat(tidyStr, 32)
-	if err != nil || score < 0 || score > 65.536 {
-		if err := tgBot.API.SendText(u, "Введите вещественное число. К примеру: 34,56"); err != nil {
-			return err
-		}
-		return nil //error broken
-	}
-
-	scoreDB, date := uint16(score*100), time.Now().Format(LAYOUT)
-	isExist, err := tgBot.DB.Scorer.IsExistDay(u.Message.From.ID, date)
-	if err != nil {
-		return err
-	}
-
-	if isExist {
-		if err := tgBot.DB.Scorer.UpdateCold_w(u.Message.From.ID, scoreDB, date); err != nil {
-			return err
-		}
-		if err := tgBot.API.SendText(u, "Успешно добавлено к текущей дате!"); err != nil {
-			return err
-		}
-	} else {
-		if err := tgBot.DB.Scorer.Insert(database.Scorer{IdTg: u.Message.From.ID, Hot_w: 0, Cold_w: scoreDB, Date: date}); err != nil {
-			return err
-		}
-		if err := tgBot.API.SendText(u, "Успешно создано в базе!"); err != nil {
-			return err
-		}
-	}
-
-	tgBot.State.Erase()
-
-	return nil
-}
-
 func (r *Hot_w2) HandleInput(u *tg.Update) error {
 	/*defer func() error {
 		if err := recover(); err != nil {
@@ -104,29 +75,125 @@ func (r *Hot_w2) HandleInput(u *tg.Update) error {
 		return nil //error broken
 	}
 
-	scoreDB, date := uint16(score*100), time.Now().Format(LAYOUT)
-	isExist, err := tgBot.DB.Scorer.IsExistDay(u.Message.From.ID, date)
+	tgIdDB := database.TelegramID(u.FromChat().ID)
+	scoreDB := database.ScoreM3(score * 100)
+	dateDB := database.Date(time.Now().Format(LAYOUT))
+	isExist, err := tgBot.DB.Scorer.IsExistDay(tgIdDB, dateDB)
 	if err != nil {
 		return err
 	}
 
 	if isExist {
-		if err := tgBot.DB.Scorer.UpdateHot_w(u.Message.From.ID, scoreDB, date); err != nil {
+		if err := tgBot.DB.Scorer.UpdateHot_w(tgIdDB, scoreDB, dateDB); err != nil {
 			return err
 		}
-		if err := tgBot.API.SendText(u, "Успешно добавлено к текущей дате!"); err != nil {
+		if err := tgBot.API.SendText(u, "Успешно обновлено у текущей даты!"); err != nil {
 			return err
 		}
+		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
 	} else {
-		if err := tgBot.DB.Scorer.Insert(database.Scorer{IdTg: u.Message.From.ID, Hot_w: scoreDB, Cold_w: 0, Date: date}); err != nil {
-			return err
+		st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+		if !ok {
+			return nil
 		}
-		if err := tgBot.API.SendText(u, "Успешно создано в базе!"); err != nil {
-			return err
+
+		d := st.Data.(cache.TenantData)
+		d.ScoreHot_w = scoreDB
+		d.Score[0] = true
+
+		if d.Score[0] && d.Score[1] {
+
+			score := database.Scorer{
+				IdTg:   tgIdDB,
+				Hot_w:  d.ScoreHot_w,
+				Cold_w: d.ScoreCold_w,
+				Date:   dateDB,
+			}
+			if err := tgBot.DB.Scorer.Insert(score); err != nil {
+				return err
+			}
+			if err := tgBot.API.SendText(u, "Счёт за воду успешно сохранен c параметрами: "+fmt.Sprintf("%d Hot m3 | %d Cold m3", score.Hot_w, score.Cold_w)); err != nil {
+				return err
+			}
+			tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+		} else {
+			tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+			tgBot.State.Display()
+			if err := tgBot.API.SendText(u, "Счёт за горячую воду внесён."); err != nil {
+				return err
+			}
+			if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Water1].Action(u); err != nil {
+				return err
+			}
 		}
 	}
 
-	tgBot.State.Erase()
+	return nil
+}
+
+func (b *Cold_w2) HandleInput(u *tg.Update) error {
+
+	tidyStr := strings.TrimSpace(strings.Replace(u.Message.Text, ",", ".", 1))
+	score, err := strconv.ParseFloat(tidyStr, 32)
+	if err != nil || score < 0 || score > 65.536 {
+		if err := tgBot.API.SendText(u, "Введите вещественное число. К примеру: 34,56"); err != nil {
+			return err
+		}
+		return nil //error broken
+	}
+
+	tgIdDB := database.TelegramID(u.FromChat().ID)
+	scoreDB := database.ScoreM3(score * 100)
+	dateDB := database.Date(time.Now().Format(LAYOUT))
+	isExist, err := tgBot.DB.Scorer.IsExistDay(tgIdDB, dateDB)
+	if err != nil {
+		return err
+	}
+
+	if isExist {
+		if err := tgBot.DB.Scorer.UpdateHot_w(tgIdDB, scoreDB, dateDB); err != nil {
+			return err
+		}
+		if err := tgBot.API.SendText(u, "Успешно обновлено у текущей даты!"); err != nil {
+			return err
+		}
+		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+	} else {
+		st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+		if !ok {
+			return nil
+		}
+
+		d := st.Data.(cache.TenantData)
+		d.ScoreCold_w = scoreDB
+		d.Score[1] = true
+
+		if d.Score[0] && d.Score[1] {
+
+			score := database.Scorer{
+				IdTg:   tgIdDB,
+				Hot_w:  d.ScoreHot_w,
+				Cold_w: d.ScoreCold_w,
+				Date:   dateDB,
+			}
+			if err := tgBot.DB.Scorer.Insert(score); err != nil {
+				return err
+			}
+			if err := tgBot.API.SendText(u, "Счёт за воду успешно сохранен c параметрами: "+fmt.Sprintf("%d Hot m3 | %d Cold m3", score.Hot_w, score.Cold_w)); err != nil {
+				return err
+			}
+			tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+		} else {
+			tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+			tgBot.State.Display()
+			if err := tgBot.API.SendText(u, "Счёт за холодную воду внесён."); err != nil {
+				return err
+			}
+			if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Water1].Action(u); err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
@@ -142,29 +209,37 @@ func (r *Month2) HandleInput(u *tg.Update) error {
 		return nil //error broken
 	}
 
-	tgBot.State.TenantPaymentMonth = uint8(month)
-	tgBot.State.TenantPayment[0] = 2
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if !ok {
+		return nil
+	}
 
-	if tgBot.State.TenantPayment[0] == 2 && tgBot.State.TenantPayment[1] == 2 && tgBot.State.TenantPayment[2] == 2 {
+	d := st.Data.(cache.TenantData)
+	d.PaymentMonth = uint8(month)
+	d.Payment[0] = true
 
-		if err := tgBot.DB.Payment.Insert(database.Payment{
-			IdTg:      u.Message.From.ID,
-			Amount:    tgBot.State.TenantPaymentAmount,
-			PayMoment: time.Now().Format(LAYOUT),
-			Date:      GetAverageDate(tgBot.State.TenantPaymentMonth),
-			Photo:     tgBot.State.TenantPaymentReceipt}); err != nil {
+	if d.Payment[0] && d.Payment[1] && d.Payment[2] {
+
+		payment := database.Payment{
+			IdTg:      database.TelegramID(u.FromChat().ID),
+			Amount:    database.AmountRUB(d.PaymentAmount),
+			PayMoment: database.Date(time.Now().Format(LAYOUT)),
+			Date:      database.Date(GetAverageDate(d.PaymentMonth)),
+			Photo:     database.Photo(d.PaymentReceipt),
+		}
+		if err := tgBot.DB.Payment.Insert(payment); err != nil {
 			return err
 		}
-
-		if err := tgBot.API.SendText(u, "Квитанция успешно сохранена!"); err != nil {
+		if err := tgBot.API.SendText(u, "Квитанция успешно сохранена c параметрами: "+fmt.Sprintf("%d ₽ | %s", payment.Amount, payment.Date)); err != nil {
 			return err
 		}
-		tgBot.State.Erase()
+		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
 	} else {
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
 		if err := tgBot.API.SendText(u, "Месяц успешно добавлен."); err != nil {
 			return err
 		}
-		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].ShowButtons(u); err != nil {
+		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].Action(u); err != nil {
 			return err
 		}
 	}
@@ -182,30 +257,37 @@ func (r *Amount2) HandleInput(u *tg.Update) error {
 		}
 		return nil //error broken
 	}
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if !ok {
+		return nil
+	}
 
-	tgBot.State.TenantPaymentAmount = uint(amount)
-	tgBot.State.TenantPayment[1] = 2
+	d := st.Data.(cache.TenantData)
+	d.PaymentAmount = database.AmountRUB(amount)
+	d.Payment[1] = true
 
-	if tgBot.State.TenantPayment[0] == 2 && tgBot.State.TenantPayment[1] == 2 && tgBot.State.TenantPayment[2] == 2 {
+	if d.Payment[0] && d.Payment[1] && d.Payment[2] {
+
 		payment := database.Payment{
-			IdTg:      u.Message.From.ID,
-			Amount:    tgBot.State.TenantPaymentAmount,
-			PayMoment: time.Now().Format(LAYOUT),
-			Date:      GetAverageDate(tgBot.State.TenantPaymentMonth),
-			Photo:     tgBot.State.TenantPaymentReceipt}
-
+			IdTg:      database.TelegramID(u.FromChat().ID),
+			Amount:    database.AmountRUB(d.PaymentAmount),
+			PayMoment: database.Date(time.Now().Format(LAYOUT)),
+			Date:      database.Date(GetAverageDate(d.PaymentMonth)),
+			Photo:     database.Photo(d.PaymentReceipt),
+		}
 		if err := tgBot.DB.Payment.Insert(payment); err != nil {
 			return err
 		}
 		if err := tgBot.API.SendText(u, "Квитанция успешно сохранена c параметрами: "+fmt.Sprintf("%d ₽ | %s", payment.Amount, payment.Date)); err != nil {
 			return err
 		}
-		tgBot.State.Erase()
+		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
 	} else {
-		if err := tgBot.API.SendText(u, "Cумма оплаты успешно добавлена."); err != nil {
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+		if err := tgBot.API.SendText(u, "Сумма оплаты добавлена."); err != nil {
 			return err
 		}
-		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].ShowButtons(u); err != nil {
+		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].Action(u); err != nil {
 			return err
 		}
 	}
@@ -232,30 +314,37 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 	if err != nil {
 		return err
 	}
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if !ok {
+		return nil
+	}
 
-	tgBot.State.TenantPaymentReceipt = blob
-	tgBot.State.TenantPayment[2] = 2
+	d := st.Data.(cache.TenantData)
+	d.PaymentReceipt = database.Photo(blob)
+	d.Payment[2] = true
 
-	if tgBot.State.TenantPayment[0] == 2 && tgBot.State.TenantPayment[1] == 2 && tgBot.State.TenantPayment[2] == 2 {
+	if d.Payment[0] && d.Payment[1] && d.Payment[2] {
 
-		if err := tgBot.DB.Payment.Insert(database.Payment{
-			IdTg:      u.Message.From.ID,
-			Amount:    tgBot.State.TenantPaymentAmount,
-			PayMoment: time.Now().Format(LAYOUT),
-			Date:      GetAverageDate(tgBot.State.TenantPaymentMonth),
-			Photo:     tgBot.State.TenantPaymentReceipt}); err != nil {
+		payment := database.Payment{
+			IdTg:      database.TelegramID(u.FromChat().ID),
+			Amount:    database.AmountRUB(d.PaymentAmount),
+			PayMoment: database.Date(time.Now().Format(LAYOUT)),
+			Date:      database.Date(GetAverageDate(d.PaymentMonth)),
+			Photo:     database.Photo(d.PaymentReceipt),
+		}
+		if err := tgBot.DB.Payment.Insert(payment); err != nil {
 			return err
 		}
-
-		if err := tgBot.API.SendText(u, "Квитанция успешно сохранена!"); err != nil {
+		if err := tgBot.API.SendText(u, "Квитанция успешно сохранена c параметрами: "+fmt.Sprintf("%d ₽ | %s", payment.Amount, payment.Date)); err != nil {
 			return err
 		}
-		tgBot.State.Erase()
+		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
 	} else {
-		if err := tgBot.API.SendText(u, "Скрин квитанции успешно добавлен."); err != nil {
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+		if err := tgBot.API.SendText(u, "Скрин оплаты добавлен."); err != nil {
 			return err
 		}
-		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].ShowButtons(u); err != nil {
+		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].Action(u); err != nil {
 			return err
 		}
 	}

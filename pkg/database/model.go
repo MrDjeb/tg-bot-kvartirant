@@ -5,9 +5,11 @@ type DBTabler interface {
 	Insert(r DBTabler) error
 }
 
-/*type TelegramID int64
+type TelegramID int64
 type ScoreM3 uint16
-type AmountRUB uint*/
+type AmountRUB uint
+type Date string
+type Photo []byte
 
 type Tables struct {
 	Scorer  DBScorer
@@ -17,24 +19,24 @@ type Tables struct {
 }
 
 type Scorer struct {
-	IdTg   int64
-	Hot_w  uint16 // 0,00 - 65,536 m3
-	Cold_w uint16 // 0,00 - 65,536 m3
-	Date   string
+	IdTg   TelegramID
+	Hot_w  ScoreM3 // 0,00 - 65,536 m3
+	Cold_w ScoreM3 // 0,00 - 65,536 m3
+	Date   Date
 }
 
 type Payment struct {
-	IdTg      int64
-	Amount    uint // 0 - 4294967296 Rub
-	PayMoment string
-	Date      string
-	Photo     []byte
+	IdTg      TelegramID
+	Amount    AmountRUB // 0 - 4294967296 Rub
+	PayMoment Date
+	Date      Date
+	Photo     Photo
 }
 
 type Tenant struct {
-	IdTg int64
+	IdTg TelegramID
 }
 
 type Admin struct {
-	IdTg int64
+	IdTg TelegramID
 }

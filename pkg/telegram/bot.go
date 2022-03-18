@@ -2,7 +2,9 @@ package telegram
 
 import (
 	"errors"
+	"fmt"
 
+	"github.com/MrDjeb/tg-bot-kvartirant/pkg/cache"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/config"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/database"
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -13,29 +15,25 @@ var tgBot *Bot
 type Bot struct {
 	API   API
 	Text  config.Text
-	State State
-	But   Buttons
+	State *cache.Cache
 	DB    database.Tables
 	Handler
 	Tenant User
 	Admin  User
 }
 
-func NewBot(api *tg.BotAPI, text config.Text, db database.Tables) *Bot {
+func NewBot(api *tg.BotAPI, text config.Text, db database.Tables, cach *cache.Cache) *Bot {
 	b := &Bot{
 		API:    API{api},
 		Text:   text,
-		State:  State{},
-		But:    Buttons{},
+		State:  cach,
 		DB:     db,
 		Tenant: User{},
 		Admin:  User{},
 	}
 	tgBot = b
-	b.But = NewButtons()
 	b.Tenant = NewUser(&TenantHandler{})
 	b.Admin = NewUser(&AdminHandler{})
-	b.State.Erase()
 	return b
 }
 
@@ -61,6 +59,7 @@ func (b *Bot) Start() error {
 	u := tg.NewUpdate(0)
 	u.Timeout = 60
 	updates := b.API.GetUpdatesChan(u)
+	defer b.API.StopReceivingUpdates()
 
 	for u := range updates {
 		user, err := b.FromWhom(&u)
@@ -70,38 +69,44 @@ func (b *Bot) Start() error {
 
 		switch {
 		case u.CallbackQuery != nil:
+			fmt.Println("CAAALBAACK!!")
 			if err := user.Callback(&u); err != nil {
 				return err
 			}
 		case u.Message.IsCommand():
+			fmt.Println("COMAAAND!!")
 			if err := user.Command(&u); err != nil {
 				return err
 			}
 		case u.Message.Photo != nil:
+			fmt.Println("PHOTOO!!")
 			if err := user.Photo(&u); err != nil {
 				return err
 			}
 		case u.Message.Text != "":
+			fmt.Println("MESSSAAAGE!!!!!")
 			if err := user.Message(&u); err != nil {
 				return err
 			}
 		}
 	}
-	return nil
+	return errors.New("there is no handler for this update")
 }
 
 func (b *Bot) FromWhom(u *tg.Update) (User, error) {
-	flagT, err := b.DB.Tenant.IsExist(u.FromChat().ID)
+	flagT, err := b.DB.Tenant.IsExist(database.TelegramID(u.FromChat().ID))
 	if err != nil {
 		return User{}, err
 	}
 
-	flagA, err := b.DB.Admin.IsExist(u.FromChat().ID)
+	flagA, err := b.DB.Admin.IsExist(database.TelegramID(u.FromChat().ID))
 	if err != nil {
 		return User{}, err
 	}
 
 	switch {
+	case flagA && flagT:
+		return User{}, errors.New("intersection database IdTelegram in data")
 	case flagT:
 		return tgBot.Tenant, err
 	case flagA:
