@@ -21,7 +21,6 @@ type Tenant struct {
 
 type Admin struct {
 	Keyboard Keyboard
-	Rooms    InKeyboard
 	Settings InKeyboard
 }
 
@@ -31,10 +30,6 @@ func NewButtons() Buttons {
 	a := cfg.Text.Buttons.Admin
 	return Buttons{
 		Tenant: Tenant{
-			Keyboard: Keyboard(tg.NewReplyKeyboard(
-				tg.NewKeyboardButtonRow(tg.NewKeyboardButton(t.Water1), tg.NewKeyboardButton(t.Receipt1)),
-				tg.NewKeyboardButtonRow(tg.NewKeyboardButton(t.Report1)))),
-
 			Water: tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(t.Water.Hot_w2, t.Water.Hot_w2),
 				tg.NewInlineKeyboardButtonData(t.Water.Cold_w2, t.Water.Cold_w2)),
 
@@ -48,14 +43,36 @@ func NewButtons() Buttons {
 			Keyboard: Keyboard(tg.NewReplyKeyboard(
 				tg.NewKeyboardButtonRow(tg.NewKeyboardButton(a.Rooms1), tg.NewKeyboardButton(a.Settings1)))),
 
-			Rooms: InKeyboard(tg.NewInlineKeyboardMarkup(
-				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(a.Rooms.R2, a.Rooms.R2),
-					tg.NewInlineKeyboardButtonData("366", "366")))),
-
 			Settings: InKeyboard(tg.NewInlineKeyboardMarkup(
 				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(a.Settings.Edit2, a.Settings.Edit2)),
 				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(a.Settings.Contacts2, a.Settings.Contacts2)),
 				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(a.Settings.Reminder2, a.Settings.Reminder2)))),
 		},
 	}
+}
+
+func MakeKeyboard(names ...[]string) Keyboard {
+	var buttons [][]tg.KeyboardButton
+	for _, row := range names {
+		var butRow []tg.KeyboardButton
+		for _, name := range row {
+			butRow = append(butRow, tg.NewKeyboardButton(name))
+		}
+		buttons = append(buttons, tg.NewKeyboardButtonRow(butRow...))
+
+	}
+	return Keyboard(tg.NewReplyKeyboard(buttons...))
+}
+
+func MakeInKeyboard(names ...[]string) InKeyboard {
+	var buttons [][]tg.InlineKeyboardButton
+	for _, row := range names {
+		var butRow []tg.InlineKeyboardButton
+		for _, name := range row {
+			butRow = append(butRow, tg.NewInlineKeyboardButtonData(name, name))
+		}
+		buttons = append(buttons, tg.NewInlineKeyboardRow(butRow...))
+
+	}
+	return InKeyboard(tg.NewInlineKeyboardMarkup(buttons...))
 }

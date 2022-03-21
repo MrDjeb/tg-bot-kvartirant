@@ -16,9 +16,7 @@ var (
 	ErrCountDate    = errors.New("count of date in table scorer is bad")
 )
 
-type DBScorer struct {
-	DB *sql.DB
-}
+type DBScorer struct{ DB *sql.DB }
 
 func (r *DBScorer) Migrate() error {
 
@@ -99,9 +97,7 @@ func (s DBScorer) UpdateHot_w(tgId TelegramID, score ScoreM3, date Date) error {
 	return nil
 }
 
-type DBPayment struct {
-	DB *sql.DB
-}
+type DBPayment struct{ DB *sql.DB }
 
 func (r *DBPayment) Migrate() error {
 	query := `
@@ -137,9 +133,7 @@ func (r *DBPayment) Insert(pa Payment) error {
 	return nil
 }
 
-type DBTenant struct {
-	DB *sql.DB
-}
+type DBTenant struct{ DB *sql.DB }
 
 func (r *DBTenant) Migrate() error {
 	query := `
@@ -179,9 +173,7 @@ func (r *DBTenant) Insert(t Tenant) error {
 	return nil
 }
 
-type DBAdmin struct {
-	DB *sql.DB
-}
+type DBAdmin struct{ DB *sql.DB }
 
 func (r *DBAdmin) Migrate() error {
 
@@ -195,6 +187,22 @@ func (r *DBAdmin) Migrate() error {
 	return err
 }
 
+func (r *DBAdmin) Insert(a Admin) error {
+	log.Println("INSERT INTO admin(idAdmin) values(?)", a.IdTg)
+
+	_, err := r.DB.Exec("INSERT INTO admin(idAdmin) values(?)", a.IdTg)
+	if err != nil {
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if errors.Is(sqliteErr.ExtendedCode, sqlite3.ErrConstraintUnique) {
+				return ErrDuplicate
+			}
+		}
+		return err
+	}
+	return nil
+}
+
 func (r *DBAdmin) IsExist(tgid TelegramID) (bool, error) {
 	log.Println("SELECT * FROM admin WHERE idAdmin = ?;", tgid)
 
@@ -206,6 +214,38 @@ func (r *DBAdmin) IsExist(tgid TelegramID) (bool, error) {
 	return rows.Next(), nil
 }
 
+type DBRoom struct{ DB *sql.DB }
+
+func (r *DBRoom) Migrate() error {
+
+	query := `
+    CREATE TABLE IF NOT EXISTS room(
+		idAdmin INTEGER,
+        idTenant INTEGER,
+        number TEXT
+    );`
+	log.Println(query)
+
+	_, err := r.DB.Exec(query)
+	return err
+}
+
+func (r *DBRoom) Insert(o Room) error {
+	log.Println("INSERT INTO room(idAdmin, idTenant, number) values(?,?,?)", o.IdTgAdmin, o.IdTgTenant, o.Number)
+
+	_, err := r.DB.Exec("INSERT INTO room(idAdmin, idTenant, number) values(?,?,?)", o.IdTgAdmin, o.IdTgTenant, o.Number)
+	if err != nil {
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if errors.Is(sqliteErr.ExtendedCode, sqlite3.ErrConstraintUnique) {
+				return ErrDuplicate
+			}
+		}
+		return err
+	}
+	return nil
+}
+
 func Init() (Tables, error) {
 	log.SetPrefix("database ")
 
@@ -213,10 +253,11 @@ func Init() (Tables, error) {
 	if err != nil {
 		return Tables{}, err
 	}
-	tables := Tables{DBScorer{DB: db}, DBPayment{DB: db}, DBTenant{DB: db}, DBAdmin{DB: db}}
+	tables := Tables{DBScorer{DB: db}, DBPayment{DB: db}, DBTenant{DB: db}, DBAdmin{DB: db}, DBRoom{DB: db}}
 	tables.Scorer.Migrate()
 	tables.Payment.Migrate()
 	tables.Tenant.Migrate()
 	tables.Admin.Migrate()
+	tables.Room.Migrate()
 	return tables, err
 }

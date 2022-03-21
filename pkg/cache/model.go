@@ -24,6 +24,10 @@ func (s *TenantData) Erase() {
 	s.Payment = [3]bool{false, false, false}
 }
 
+type AdminData struct {
+	AddingRooms map[string]string
+}
+
 /*func (s *TenantState) CleanProcess() {
 	s.TenantHot_w2 = false
 	s.TenantCold_w2 = false

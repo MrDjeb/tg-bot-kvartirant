@@ -11,6 +11,7 @@ type Config struct {
 	Text
 }
 type Text struct {
+	JwtKey string
 	Buttons
 	Response
 	CommonCommand
@@ -59,17 +60,25 @@ type Receipt struct {
 type Admin struct {
 	Rooms1    string `mapstructure:"rooms1"`
 	Settings1 string `mapstructure:"settings1"`
-	Rooms     Rooms
+	Room      Room
 	Settings  Settings
 }
 
-type Rooms struct {
-	R2 string `mapstructure:"r2"`
+type Room struct {
+	ShowScorer33 string `mapstructure:"show_scorer33"`
+	ShowScorer14 string `mapstructure:"show_scorer14"`
+	ShowScorerN4 string `mapstructure:"show_scorerN4"`
 }
 type Settings struct {
 	Edit2     string `mapstructure:"edit2"`
 	Contacts2 string `mapstructure:"contacts2"`
 	Reminder2 string `mapstructure:"reminder2"`
+	Edit      Edit
+}
+
+type Edit struct {
+	AddRoom3    string `mapstructure:"add_room3"`
+	RemoveRoom3 string `mapstructure:"remove_room3"`
 }
 
 func Init() (*Config, error) {
@@ -109,7 +118,10 @@ func unmarshal(cfg *Config) error {
 	if err := viper.UnmarshalKey("text.buttons.admin", &cfg.Text.Buttons.Admin); err != nil {
 		return err
 	}
-	if err := viper.UnmarshalKey("text.buttons.admin.rooms", &cfg.Text.Buttons.Admin.Rooms); err != nil {
+	if err := viper.UnmarshalKey("text.buttons.admin.room", &cfg.Text.Buttons.Admin.Room); err != nil {
+		return err
+	}
+	if err := viper.UnmarshalKey("text.buttons.admin.settings.edit", &cfg.Text.Buttons.Admin.Settings.Edit); err != nil {
 		return err
 	}
 	if err := viper.UnmarshalKey("text.buttons.admin.settings", &cfg.Text.Buttons.Admin.Settings); err != nil {
@@ -129,12 +141,18 @@ func unmarshal(cfg *Config) error {
 }
 
 func fromEnv(cfg *Config) error {
-	os.Setenv("TOKEN", "5150854501:AAHM8auF6KgpeHIbw2BHSVMJ5CRPshzYU5s")
+	os.Setenv("TG_TOKEN", "5150854501:AAHM8auF6KgpeHIbw2BHSVMJ5CRPshzYU5s")
+	os.Setenv("ACCESS_SECRET", "9443bb08931675ec730ad86c722b9908eb988e89385299985e934ffa05e9e1c9")
 
-	if err := viper.BindEnv("token"); err != nil {
+	if err := viper.BindEnv("tg_token"); err != nil {
 		return err
 	}
-	cfg.TgToken = viper.GetString("token")
+	cfg.TgToken = viper.GetString("tg_token")
+
+	if err := viper.BindEnv("access_secret"); err != nil {
+		return err
+	}
+	cfg.JwtKey = viper.GetString("access_secret")
 
 	return nil
 }

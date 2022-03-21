@@ -10,12 +10,14 @@ type ScoreM3 uint16
 type AmountRUB uint
 type Date string
 type Photo []byte
+type Number string
 
 type Tables struct {
 	Scorer  DBScorer
 	Payment DBPayment
 	Tenant  DBTenant
 	Admin   DBAdmin
+	Room    DBRoom
 }
 
 type Scorer struct {
@@ -39,4 +41,10 @@ type Tenant struct {
 
 type Admin struct {
 	IdTg TelegramID
+}
+
+type Room struct {
+	IdTgAdmin  TelegramID
+	IdTgTenant TelegramID
+	Number     Number
 }

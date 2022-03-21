@@ -2,7 +2,6 @@ package telegram
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/cache"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/config"
@@ -18,22 +17,25 @@ type Bot struct {
 	State *cache.Cache
 	DB    database.Tables
 	Handler
-	Tenant User
-	Admin  User
+	Tenant  User
+	Admin   User
+	Unknown User
 }
 
 func NewBot(api *tg.BotAPI, text config.Text, db database.Tables, cach *cache.Cache) *Bot {
 	b := &Bot{
-		API:    API{api},
-		Text:   text,
-		State:  cach,
-		DB:     db,
-		Tenant: User{},
-		Admin:  User{},
+		API:     API{api},
+		Text:    text,
+		State:   cach,
+		DB:      db,
+		Tenant:  User{},
+		Admin:   User{},
+		Unknown: User{},
 	}
 	tgBot = b
 	b.Tenant = NewUser(&TenantHandler{})
 	b.Admin = NewUser(&AdminHandler{})
+	b.Unknown = NewUser(&UnknownHandler{})
 	return b
 }
 
@@ -69,22 +71,18 @@ func (b *Bot) Start() error {
 
 		switch {
 		case u.CallbackQuery != nil:
-			fmt.Println("CAAALBAACK!!")
 			if err := user.Callback(&u); err != nil {
 				return err
 			}
 		case u.Message.IsCommand():
-			fmt.Println("COMAAAND!!")
 			if err := user.Command(&u); err != nil {
 				return err
 			}
 		case u.Message.Photo != nil:
-			fmt.Println("PHOTOO!!")
 			if err := user.Photo(&u); err != nil {
 				return err
 			}
 		case u.Message.Text != "":
-			fmt.Println("MESSSAAAGE!!!!!")
 			if err := user.Message(&u); err != nil {
 				return err
 			}
@@ -112,6 +110,6 @@ func (b *Bot) FromWhom(u *tg.Update) (User, error) {
 	case flagA:
 		return tgBot.Admin, err
 	default:
-		return User{}, errors.New("unknow user")
+		return tgBot.Unknown, err
 	}
 }

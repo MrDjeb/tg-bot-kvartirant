@@ -13,11 +13,16 @@ text:
       report1: "Сообщения о поломке"
     admin:
       rooms1: "Комнаты"
-      rooms:
-        r2: "245"
+      room:
+        show_scorer33: "Показания счётчика (3)"
+        show_scorer14: "Показания счётчика (1)"
+        show_scorerN4: "Показания счётчика (все)"
       settings1: "Настройки"
       settings:
         edit2: "Добавить/удалить квартиру"
+        edit:
+          add_room3: "Добавить"
+          remove_room3: "Удалить"
         contacts2: "Telegram ремонтника"
         reminder2: "Напоминание"
   response:
