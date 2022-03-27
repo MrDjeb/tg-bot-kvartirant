@@ -1,9 +1,29 @@
 package telegram
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/cache"
+	"github.com/MrDjeb/tg-bot-kvartirant/pkg/database"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/telegram/keyboard"
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+)
+
+const DEL = "$"
+
+const (
+	Edit2BackButInt int = iota - 256
+	Room2BackButInt
+	RemoveRoom3BackButInt
+	Removing4BackButInt
+)
+
+var (
+	Edit2BackBut       = fmt.Sprint(Edit2BackButInt)
+	Room2BackBut       = fmt.Sprint(Room2BackButInt)
+	RemoveRoom3BackBut = fmt.Sprint(RemoveRoom3BackButInt)
+	Removing4BackBut   = fmt.Sprint(Removing4BackButInt)
 )
 
 type Handler interface {
@@ -25,6 +45,7 @@ type HandlerResponse struct {
 	But map[string]ButtonResponser
 	Inb map[string]InbuttonResponser
 	Inp map[string]InputResponser
+	Bck map[string]BackResponser
 }
 
 type CommandResponser interface {
@@ -49,11 +70,14 @@ type InbuttonResponser interface {
 	Action(u *tg.Update) error
 }
 
+type BackResponser func(u *tg.Update) error
+
 type UnknownHandler struct{ HandlerResponse }
 
 func (h *UnknownHandler) New() {
 	h.Cmd = map[string]CommandResponser{
 		tgBot.Text.CommonCommand.Start:   &UnknownStart{},
+		tgBot.Text.CommonCommand.GodMode: &GodMode{},
 		tgBot.Text.CommonCommand.Unknown: &UnknownUnknownCmd{},
 	}
 }
@@ -159,35 +183,51 @@ func (h *TenantHandler) Message(u *tg.Update) error {
 type AdminHandler struct{ HandlerResponse }
 
 func (h *AdminHandler) New() {
-	b := keyboard.NewButtons().Admin
+	B := keyboard.NewButtons().Admin
+	TC := tgBot.Text.CommonCommand
+	TA := tgBot.Text.Admin
 	h.Cmd = map[string]CommandResponser{
-		tgBot.Text.CommonCommand.Start:   &AdminStart{But: b.Keyboard},
-		tgBot.Text.CommonCommand.Cancel:  &AdminCancel{},
-		tgBot.Text.CommonCommand.Unknown: &AdminUnknownCmd{},
+		TC.Start:   &AdminStart{But: B.Keyboard},
+		TC.Cancel:  &AdminCancel{},
+		TC.Unknown: &AdminUnknownCmd{},
 	}
 	h.Mes = map[string]MessageResponser{
-		tgBot.Text.CommonMessage.Hi:      &AdminHi{},
-		tgBot.Text.CommonCommand.Unknown: &AdminUnknownMes{},
+		tgBot.Text.CommonMessage.Hi: &AdminHi{},
+		TC.Unknown:                  &AdminUnknownMes{},
 	}
 	h.But = map[string]ButtonResponser{
-		tgBot.Text.Admin.Rooms1:    &Rooms1{But: keyboard.MakeInKeyboard([]string{"333", "233"})},
-		tgBot.Text.Admin.Settings1: &Settings1{But: b.Settings},
+		TA.Rooms1:    &Rooms1{},
+		TA.Settings1: &Settings1{But: B.Settings},
 	}
 	h.Inb = map[string]InbuttonResponser{
-		tgBot.Text.Admin.Room.ShowScorer33:  &ShowScorer33{But: keyboard.MakeInKeyboard([]string{tgBot.Text.Admin.Room.ShowScorer14, tgBot.Text.Admin.Room.ShowScorerN4})},
-		tgBot.Text.Admin.Room.ShowScorer14:  &ShowScorer14{},
-		tgBot.Text.Admin.Room.ShowScorerN4:  &ShowScorerN4{},
-		tgBot.Text.Admin.Settings.Edit2:     &Edit2{But: keyboard.MakeInKeyboard([]string{"Добавить", "Удалить"})},
-		tgBot.Text.Admin.Settings.Reminder2: &Reminder2{},
-		"Удалить":                           &RemoveRoom3{},
+		TA.Room2:                                 &Room2{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorer33, TA.Room.ShowPayment33}, {TC.BackBut}}, [][]string{{TA.Room.ShowScorer33, TA.Room.ShowPayment33}, {Room2BackBut}})},
+		TA.Room.ShowScorer33:                     &ShowScorer33{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorerN4}}, [][]string{{TA.Room.ShowScorerN4}})},
+		TA.Room.ShowPayment33:                    &ShowPayment33{},
+		TA.Room.ShowScorerN4:                     &ShowScorerN4{},
+		TA.Settings.Edit2:                        &Edit2{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.Edit.AddRoom3, TA.Settings.Edit.RemoveRoom3}, {TC.BackBut}}, [][]string{{TA.Settings.Edit.AddRoom3, TA.Settings.Edit.RemoveRoom3}, {Edit2BackBut}})},
+		TA.Settings.Reminder2:                    &Reminder2{},
+		TA.Settings.Edit.RemoveRoom3:             &RemoveRoom3{},
+		TA.Settings.Edit.Removing4:               &Removing4{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.Edit.Removing.ConfirmRemove5}, {TC.BackBut}}, [][]string{{TA.Settings.Edit.Removing.ConfirmRemove5}, {Removing4BackBut}})},
+		TA.Settings.Edit.Removing.ConfirmRemove5: &ConfirmRemove5{},
 	}
 	h.Inp = map[string]InputResponser{
-		tgBot.Text.Admin.Settings.Contacts2: &Contacts2{},
-		"Добавить":                          &AddRoom3{},
+		TA.Settings.Contacts2:     &Contacts2{},
+		TA.Settings.Edit.AddRoom3: &AddRoom3{},
+	}
+	h.Bck = map[string]BackResponser{
+		Edit2BackBut:       NewBackResponser(TA.Settings1),
+		Room2BackBut:       NewBackResponser(TA.Rooms1),
+		RemoveRoom3BackBut: NewBackResponser(TA.Settings.Edit2),
+		Removing4BackBut:   NewBackResponser(TA.Settings.Edit.RemoveRoom3),
 	}
 }
 
 func (h *AdminHandler) Callback(u *tg.Update) error {
+	bck, ok := h.Bck[u.CallbackQuery.Data]
+	if ok {
+		return bck(u)
+	}
+
 	inp, ok := h.Inp[u.CallbackQuery.Data]
 	if ok {
 		return inp.Callback(u)
@@ -197,6 +237,28 @@ func (h *AdminHandler) Callback(u *tg.Update) error {
 	if ok {
 		return inb.Callback(u)
 	}
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		num := u.CallbackQuery.Data[strings.Index(u.CallbackQuery.Data, DEL)+1:]
+		if isRoom(num, d.Rooms) {
+			prefix := u.CallbackQuery.Data[:strings.Index(u.CallbackQuery.Data, DEL)]
+
+			inb, ok := h.Inb[prefix]
+			if ok {
+				switch prefix {
+				case tgBot.Text.Admin.Room2:
+					d.Number = num
+				case tgBot.Text.Admin.Settings.Edit.Removing4:
+					d.NumberDel = num
+				}
+				tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: st.Is, Data: d})
+				return inb.Callback(u)
+			}
+		}
+	}
+
 	return h.Mes[tgBot.Text.CommonCommand.Unknown].Action(u)
 }
 
@@ -231,11 +293,102 @@ func (h *AdminHandler) Message(u *tg.Update) error {
 	}
 
 	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		if st.Is == tgBot.Text.Tenant.Receipt.Receipt2 {
-			return tgBot.API.SendText(u, "Пришлите фото.")
+	if ok && st.Is != "" {
+		inp, ok := h.Inp[st.Is]
+		if ok {
+			return inp.HandleInput(u)
 		}
-		return h.Inp[st.Is].HandleInput(u)
 	}
 	return h.Mes[tgBot.Text.CommonCommand.Unknown].Action(u)
+}
+
+func getRooms(idTg int64) ([]string, error) {
+	rooms, err := tgBot.DB.Room.Read(database.TelegramID(idTg))
+	if err != nil {
+		return nil, err
+	}
+	var numbers []string
+	for _, room := range rooms {
+		numbers = append(numbers, string(room.Number))
+	}
+	return numbers, nil
+}
+
+func isRoom(number string, numbers []string) bool {
+	for _, num := range numbers {
+		if num == number {
+			return true
+		}
+	}
+	return false
+}
+
+func formatNumbers(numbers []string, prefix string) (fNum [][]string, fData [][]string) {
+	if (len(numbers)-1)/4 > 0 {
+		fNum = make([][]string, (len(numbers)-1)/4)
+		for i := range fNum {
+			fNum[i] = make([]string, 4)
+		}
+		fNum = append(fNum, make([]string, len(numbers)%4))
+	} else {
+		fNum = [][]string{numbers}
+	}
+
+	for i, num := range numbers {
+		//fmt.Printf("%d | %d  %s\n", i/4, i%4, num)
+		fNum[i/4][i%4] = num
+	}
+
+	if (len(numbers)-1)/4 > 0 {
+		fData = make([][]string, (len(numbers)-1)/4)
+		for i := range fData {
+			fData[i] = make([]string, 4)
+		}
+		fData = append(fData, make([]string, len(numbers)%4))
+	} else {
+		fData = append(fData, make([]string, len(numbers)))
+	}
+	fmt.Println(fNum, fData)
+	for i := 0; i < len(fData); i++ {
+		for j := 0; j < len(fData[i]); j++ {
+			fData[i][j] = prefix + DEL + fNum[i][j]
+		}
+	}
+	fmt.Println(fNum, fData)
+
+	return fNum, fData
+}
+
+func NewBackResponser(t string) BackResponser {
+	return func(u *tg.Update) error {
+		h := tgBot.Admin.Handler.(*AdminHandler).HandlerResponse
+		if err := tgBot.API.AnsCallback(u, "BACK"); err != nil {
+			return err
+		}
+		if err := tgBot.API.DelMes(u); err != nil {
+			return err
+		}
+
+		but, ok := h.But[t]
+		if ok {
+			return but.Action(u)
+		}
+		inb, ok := h.Inb[t]
+		if ok {
+			return inb.Action(u)
+		}
+		inp, ok := h.Inp[t]
+		if ok {
+			return inp.HandleInput(u)
+		}
+		mes, ok := h.Mes[t]
+		if ok {
+			return mes.Action(u)
+		}
+		cmd, ok := h.Cmd[t]
+		if ok {
+			return cmd.Action(u)
+		}
+		return h.Mes[tgBot.Text.CommonCommand.Unknown].Action(u)
+	}
 }

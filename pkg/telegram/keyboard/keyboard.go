@@ -64,12 +64,21 @@ func MakeKeyboard(names ...[]string) Keyboard {
 	return Keyboard(tg.NewReplyKeyboard(buttons...))
 }
 
-func MakeInKeyboard(names ...[]string) InKeyboard {
+func MakeInKeyboard(names [][]string, data [][]string) InKeyboard {
+	if len(names) != len(data) {
+		return InKeyboard{}
+	}
+	for i := 0; i < len(names); i++ {
+		if len(names[i]) != len(data[i]) {
+			return InKeyboard{}
+		}
+	}
+
 	var buttons [][]tg.InlineKeyboardButton
-	for _, row := range names {
+	for i := 0; i < len(names); i++ {
 		var butRow []tg.InlineKeyboardButton
-		for _, name := range row {
-			butRow = append(butRow, tg.NewInlineKeyboardButtonData(name, name))
+		for j := 0; j < len(names[i]); j++ {
+			butRow = append(butRow, tg.NewInlineKeyboardButtonData(names[i][j], data[i][j]))
 		}
 		buttons = append(buttons, tg.NewInlineKeyboardRow(butRow...))
 

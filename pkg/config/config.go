@@ -11,7 +11,8 @@ type Config struct {
 	Text
 }
 type Text struct {
-	JwtKey string
+	JwtKey     string
+	GodModeKey string
 	Buttons
 	Response
 	CommonCommand
@@ -33,6 +34,8 @@ type CommonCommand struct {
 	Start   string `mapstructure:"start"`
 	Cancel  string `mapstructure:"cancel"`
 	Unknown string `mapstructure:"unknown"`
+	BackBut string `mapstructure:"back_but"`
+	GodMode string `mapstructure:"godmode"`
 }
 
 type CommonMessage struct {
@@ -60,14 +63,15 @@ type Receipt struct {
 type Admin struct {
 	Rooms1    string `mapstructure:"rooms1"`
 	Settings1 string `mapstructure:"settings1"`
+	Room2     string `mapstructure:"room2"`
 	Room      Room
 	Settings  Settings
 }
 
 type Room struct {
-	ShowScorer33 string `mapstructure:"show_scorer33"`
-	ShowScorer14 string `mapstructure:"show_scorer14"`
-	ShowScorerN4 string `mapstructure:"show_scorerN4"`
+	ShowScorer33  string `mapstructure:"show_scorer33"`
+	ShowScorerN4  string `mapstructure:"show_scorerN4"`
+	ShowPayment33 string `mapstructure:"show_payment33"`
 }
 type Settings struct {
 	Edit2     string `mapstructure:"edit2"`
@@ -79,6 +83,12 @@ type Settings struct {
 type Edit struct {
 	AddRoom3    string `mapstructure:"add_room3"`
 	RemoveRoom3 string `mapstructure:"remove_room3"`
+	Removing4   string `mapstructure:"removing4"`
+	Removing    Removing
+}
+
+type Removing struct {
+	ConfirmRemove5 string `mapstructure:"confirm_remove5"`
 }
 
 func Init() (*Config, error) {
@@ -124,6 +134,9 @@ func unmarshal(cfg *Config) error {
 	if err := viper.UnmarshalKey("text.buttons.admin.settings.edit", &cfg.Text.Buttons.Admin.Settings.Edit); err != nil {
 		return err
 	}
+	if err := viper.UnmarshalKey("text.buttons.admin.settings.edit.removing", &cfg.Text.Buttons.Admin.Settings.Edit.Removing); err != nil {
+		return err
+	}
 	if err := viper.UnmarshalKey("text.buttons.admin.settings", &cfg.Text.Buttons.Admin.Settings); err != nil {
 		return err
 	}
@@ -143,6 +156,7 @@ func unmarshal(cfg *Config) error {
 func fromEnv(cfg *Config) error {
 	os.Setenv("TG_TOKEN", "5150854501:AAHM8auF6KgpeHIbw2BHSVMJ5CRPshzYU5s")
 	os.Setenv("ACCESS_SECRET", "9443bb08931675ec730ad86c722b9908eb988e89385299985e934ffa05e9e1c9")
+	os.Setenv("GODMODE_SECRET", "9443bb08931675ec730ad86c722b9908eb988e89385299985e934ffa05e9e1c9")
 
 	if err := viper.BindEnv("tg_token"); err != nil {
 		return err
@@ -152,7 +166,12 @@ func fromEnv(cfg *Config) error {
 	if err := viper.BindEnv("access_secret"); err != nil {
 		return err
 	}
-	cfg.JwtKey = viper.GetString("access_secret")
+	cfg.Text.JwtKey = viper.GetString("access_secret")
+
+	if err := viper.BindEnv("godmode_secret"); err != nil {
+		return err
+	}
+	cfg.Text.GodModeKey = viper.GetString("godmode_secret")
 
 	return nil
 }

@@ -2,31 +2,38 @@ package telegram
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/cache"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/database"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/telegram/keyboard"
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/olekukonko/tablewriter"
 )
 
 type UnknownStart struct{ CommandResponser }
 
 func (r *UnknownStart) Action(u *tg.Update) error {
+	if len(u.Message.CommandArguments()) < 32 {
+		return tgBot.Unknown.Handler.(*UnknownHandler).HandlerResponse.Cmd[tgBot.Text.CommonCommand.Unknown].Action(u)
+	}
+
 	byteToken, err := base64.StdEncoding.DecodeString(u.Message.CommandArguments())
-	if err != nil {
-		return err
+	if err != nil { //error broke
+		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк.")
 	}
 	token := string(byteToken)
 	idAdmin, err := strconv.ParseInt(token[32:], 10, 64)
-	if err != nil {
-		return err
+	if err != nil { //error broke
+		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк.")
 	}
 
 	st, ok := tgBot.State.Get(cache.KeyT(idAdmin))
 	if !ok {
-		return nil
+		return tgBot.API.SendText(u, "Кэш с таким idAdmin пуст.")
 	}
 	d := st.Data.(cache.AdminData)
 	number, ok := d.AddingRooms[token]
@@ -45,6 +52,12 @@ func (r *UnknownStart) Action(u *tg.Update) error {
 		return err
 	}
 
+	msg := tg.NewMessage(idAdmin, fmt.Sprintf("🔗 %s %s успешно привязался(-aсь) к комнате № 〈%s〉", u.SentFrom().FirstName, u.SentFrom().UserName, number))
+	_, err = tgBot.API.Send(msg)
+	if err != nil {
+		return err
+	}
+
 	tenant := database.Tenant{IdTg: database.TelegramID(u.FromChat().ID)}
 	if err := tgBot.DB.Tenant.Insert(tenant); err != nil {
 		return err
@@ -53,10 +66,30 @@ func (r *UnknownStart) Action(u *tg.Update) error {
 	return tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.Cmd[tgBot.Text.CommonCommand.Start].Action(u)
 }
 
+type GodMode struct{ CommandResponser }
+
+func (r *GodMode) Action(u *tg.Update) error {
+	if u.Message.CommandArguments() == tgBot.Text.GodModeKey {
+		if err := tgBot.API.SendText(u, "Activated!"); err != nil {
+			return err
+		}
+		if err := tgBot.DB.Admin.Insert(database.Admin{IdTgAdmin: database.TelegramID(u.FromChat().ID), Repairer: u.SentFrom().UserName}); err != nil {
+			return err
+		}
+		return tgBot.Admin.Handler.(*AdminHandler).HandlerResponse.Cmd[tgBot.Text.CommonCommand.Start].Action(u)
+
+	} else {
+		return tgBot.API.SendText(u, "Invalid key! :(")
+	}
+}
+
 type UnknownUnknownCmd struct{ CommandResponser }
 
 func (r *UnknownUnknownCmd) Action(u *tg.Update) error {
-	return tgBot.API.SendText(u, "Обратитесь к администратору для регистрации. Вы не авторезированный пользователь.")
+	msg := tg.NewMessage(u.FromChat().ID, "Обратитесь к администратору для регистрации. Вы не авторезированный пользователь.")
+	msg.ReplyMarkup = tg.NewRemoveKeyboard(false)
+	_, err := tgBot.API.Send(msg)
+	return err
 }
 
 /////////////////////////////////////////
@@ -67,7 +100,7 @@ type TenantStart struct {
 }
 
 func (r *TenantStart) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.Message.Chat.ID, tgBot.Text.Response.Start)
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf(tgBot.Text.Response.Start, u.FromChat().ID))
 	msg.ReplyMarkup = r.But
 	_, err := tgBot.API.Send(msg)
 	return err
@@ -176,7 +209,15 @@ func (r *Receipt1) Action(u *tg.Update) error {
 type Report1 struct{ ButtonResponser }
 
 func (r *Report1) Action(u *tg.Update) error {
-	return tgBot.API.SendText(u, "По техническим вопросам пишите в личные сообщения @MrDjeb")
+	idAdmin, err := tgBot.DB.Room.GetAdmin(database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
+	username, err := tgBot.DB.Admin.GetRepairer(idAdmin)
+	if err != nil {
+		return err
+	}
+	return tgBot.API.SendText(u, fmt.Sprintf("По техническим вопросам пишите в личные сообщения %s", username))
 }
 
 type Hot_w2 struct {
@@ -185,8 +226,7 @@ type Hot_w2 struct {
 }
 
 func (r *Hot_w2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введите показания с счётчика горячей воды. К примеру: 34,56")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
 	if err := tgBot.API.SendText(u, "Введите показания с счётчика горячей воды. К примеру: 34,56"); err != nil {
@@ -210,8 +250,7 @@ type Cold_w2 struct {
 }
 
 func (r *Cold_w2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введите показания с счётчика холодной воды. К примеру: 34,56")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
 	if err := tgBot.API.SendText(u, "Введите показания с счётчика холодной воды. К примеру: 34,56"); err != nil {
@@ -234,8 +273,7 @@ type Month2 struct {
 }
 
 func (r *Month2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введите номер месяца -- число от 1 до 12.")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
 	if err := tgBot.API.SendText(u, "Введите номер месяца -- число от 1 до 12."); err != nil {
@@ -259,8 +297,7 @@ type Amount2 struct {
 }
 
 func (r *Amount2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введиту сумму в рублях, которую вы оплатили. К примеру, 4500")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
 	if err := tgBot.API.SendText(u, "Введиту сумму в рублях, которую вы оплатили. К примеру, 4500"); err != nil {
@@ -284,8 +321,7 @@ type Receipt2 struct {
 }
 
 func (r *Receipt2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Пришлите скрин квитанции.")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
 	if err := tgBot.API.SendText(u, "Пришлите скрин квитанции."); err != nil {
@@ -311,7 +347,7 @@ type AdminStart struct {
 }
 
 func (r *AdminStart) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.Message.Chat.ID, tgBot.Text.Response.Start)
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf(tgBot.Text.Response.Start, u.FromChat().ID))
 	msg.ReplyMarkup = r.But
 	_, err := tgBot.API.Send(msg)
 	return err
@@ -351,13 +387,27 @@ func (r *AdminUnknownMes) Action(u *tg.Update) error {
 
 type Rooms1 struct {
 	ButtonResponser
-	But keyboard.InKeyboard
 }
 
 func (r *Rooms1) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "Выбирите комнату")
-	msg.ReplyMarkup = r.But
-	_, err := tgBot.API.Send(msg)
+	msg := tg.NewMessage(u.FromChat().ID, "🏠Список квартирантов⋮ ")
+
+	numbers, err := getRooms(u.FromChat().ID)
+	if err != nil {
+		return err
+	}
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		d.Rooms = numbers
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: st.Is, Data: d})
+	} else {
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: cache.AdminData{Rooms: numbers}})
+	}
+
+	msg.ReplyMarkup = keyboard.MakeInKeyboard(formatNumbers(numbers, tgBot.Text.Admin.Room2))
+	_, err = tgBot.API.Send(msg)
 	return err
 }
 
@@ -367,7 +417,39 @@ type Settings1 struct {
 }
 
 func (r *Settings1) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "Выбирите настройку")
+	msg := tg.NewMessage(u.FromChat().ID, "🔧⋯⋯⋯⋯⋯⇐Settings⇒⋯⋯⋯⋯⋯🔧")
+	msg.ReplyMarkup = r.But
+	_, err := tgBot.API.Send(msg)
+	return err
+}
+
+type Room2 struct {
+	InbuttonResponser
+	But keyboard.InKeyboard
+}
+
+func (r *Room2) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Choosen..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *Room2) Action(u *tg.Update) error {
+	num := ""
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		num = d.Number
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf("💠 № 〈%s〉 :", num))
 	msg.ReplyMarkup = r.But
 	_, err := tgBot.API.Send(msg)
 	return err
@@ -379,18 +461,17 @@ type Edit2 struct {
 }
 
 func (r *Edit2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Скопируйте ссылку и отошлите её")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Choosen"); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Скопируйте ссылку и отошлите её"); err != nil {
+	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
 	return r.Action(u)
 }
 
 func (r *Edit2) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "Выбирите")
+	msg := tg.NewMessage(u.FromChat().ID, "➕        OR        ✖")
 	msg.ReplyMarkup = r.But
 	_, err := tgBot.API.Send(msg)
 	return err
@@ -399,31 +480,50 @@ func (r *Edit2) Action(u *tg.Update) error {
 type Reminder2 struct{ InbuttonResponser }
 
 func (r *Reminder2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Уведомления отправлены")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Sending message."); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Уведомления отправлены"); err != nil {
+	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
 	return r.Action(u)
 }
 
 func (r *Reminder2) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "Sended notification")
-	_, err := tgBot.API.Send(msg)
-	return err
+	rooms, err := tgBot.DB.Room.Read(database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
+
+	for _, room := range rooms {
+		msg := tg.NewMessage(int64(room.IdTgTenant), "❗❗❗ Напиминаю о своевременной оплате.")
+		if _, err := tgBot.API.Send(msg); err != nil {
+			return err
+		}
+	}
+
+	return tgBot.API.SendText(u, "✅Напоминания отправлены успешно.")
 }
 
 type Contacts2 struct{ InputResponser }
 
 func (r *Contacts2) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введите ник в телеграмма")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введите ник в телеграмма"); err != nil {
+	if err := tgBot.API.DelMes(u); err != nil {
 		return err
+	}
+	if err := tgBot.API.SendText(u, "Введите @username"); err != nil {
+		return err
+	}
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Admin.Settings.Contacts2, Data: d})
+	} else {
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Admin.Settings.Contacts2})
 	}
 
 	return nil
@@ -432,8 +532,10 @@ func (r *Contacts2) Callback(u *tg.Update) error {
 type AddRoom3 struct{ InputResponser }
 
 func (r *AddRoom3) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введите номер комнаты, который хотите добавить")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
 	if err := tgBot.API.SendText(u, "Введите номер комнаты, который хотите добавить"); err != nil {
@@ -455,18 +557,105 @@ func (r *AddRoom3) Callback(u *tg.Update) error {
 type RemoveRoom3 struct{ InbuttonResponser }
 
 func (r *RemoveRoom3) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Введите номер комнаты, который хотите добавить")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Removing Room"); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введите номер комнаты, который хотите добавить"); err != nil {
+	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
 	return r.Action(u)
 }
 
 func (r *RemoveRoom3) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "Выберите комнату комнаты")
+	msg := tg.NewMessage(u.FromChat().ID, "❌Выберите какую комнату удалить➩\n🏠Список квартирантов⋮ ")
+
+	numbers, err := getRooms(u.FromChat().ID)
+	if err != nil {
+		return err
+	}
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		d.RoomsDel = numbers
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: st.Is, Data: d})
+	} else {
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: cache.AdminData{Rooms: numbers}})
+	}
+	names, data := formatNumbers(numbers, tgBot.Text.Admin.Settings.Edit.Removing4)
+	names, data = append(names, []string{tgBot.Text.CommonCommand.BackBut}), append(data, []string{RemoveRoom3BackBut})
+	msg.ReplyMarkup = keyboard.MakeInKeyboard(names, data)
+	_, err = tgBot.API.Send(msg)
+	return err
+}
+
+type Removing4 struct {
+	InbuttonResponser
+	But keyboard.InKeyboard
+}
+
+func (r *Removing4) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Choosen..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *Removing4) Action(u *tg.Update) error {
+	num := ""
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		num = d.NumberDel
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf("❌ Удалить комнату № 〈%s〉 и всю информацию о ней в базе?:", num))
+	msg.ReplyMarkup = r.But
+	_, err := tgBot.API.Send(msg)
+	return err
+}
+
+type ConfirmRemove5 struct{ InbuttonResponser }
+
+func (r *ConfirmRemove5) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Confirm?"); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *ConfirmRemove5) Action(u *tg.Update) error {
+	num := ""
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		num = d.NumberDel
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf("❌Комната № 〈%s〉 удалена!", num))
+
+	if err := tgBot.DB.Scorer.Delete(database.Number(num)); err != nil {
+		return err
+	}
+	if err := tgBot.DB.Payment.Delete(database.Number(num)); err != nil {
+		return err
+	}
+	if err := tgBot.DB.Room.Delete(database.Number(num)); err != nil {
+		return err
+	}
+
 	_, err := tgBot.API.Send(msg)
 	return err
 }
@@ -477,41 +666,53 @@ type ShowScorer33 struct {
 }
 
 func (r *ShowScorer33) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Последние 3 показания счётчика")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Showing..."); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Последние три показания счётчика"); err != nil {
+	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
 	return r.Action(u)
 }
 
 func (r *ShowScorer33) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "Счёт зав воду 1, 2 ")
+	num := ""
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		num = d.Number
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	scorers, err := tgBot.DB.Scorer.Read(database.Number(num))
+	if err != nil {
+		return err
+	}
+
+	scoreTable := &strings.Builder{}
+	table := tablewriter.NewWriter(scoreTable)
+	//table.SetColWidth(20)
+	//table.SetColMinWidth(2, 40)
+	table.SetRowSeparator("━")
+	//table.SetTablePadding("*")
+	//table.SetBorder(false)
+	//table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	table.SetCenterSeparator("╋")
+	table.SetColumnSeparator("┃") //https://unicode-table.com/ru/blocks/box-drawing/
+	table.SetHeader([]string{"hot water", "cold water", "date"})
+	//table.SetCaption(true, num)
+	for _, score := range scorers {
+		row := []string{strconv.FormatFloat(float64(score.Hot_w)/100, 'f', -1, 64), strconv.FormatFloat(float64(score.Cold_w)/100, 'f', -1, 64), string(score.Date)}
+		table.Append(row)
+	}
+	table.Render()
+
+	msg := tg.NewMessage(u.FromChat().ID, "🗝 **〈"+num+"〉**  ♨/💧\n```\n"+scoreTable.String()+"```")
+	msg.ParseMode = tg.ModeMarkdown
 	msg.ReplyMarkup = r.But
-	_, err := tgBot.API.Send(msg)
-	return err
-}
-
-type ShowScorer14 struct {
-	InbuttonResponser
-}
-
-func (r *ShowScorer14) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Последние показание счётчика")
-	if _, err := tgBot.API.Request(callback); err != nil {
-		return err
-	}
-	if err := tgBot.API.SendText(u, "Последние показание счётчика"); err != nil {
-		return err
-	}
-	return r.Action(u)
-}
-
-func (r *ShowScorer14) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "Счёт зав воду")
-	_, err := tgBot.API.Send(msg)
+	_, err = tgBot.API.Send(msg)
 	return err
 }
 
@@ -520,8 +721,7 @@ type ShowScorerN4 struct {
 }
 
 func (r *ShowScorerN4) Callback(u *tg.Update) error {
-	callback := tg.NewCallback(u.CallbackQuery.ID, "Показания счётчиков")
-	if _, err := tgBot.API.Request(callback); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Showing..."); err != nil {
 		return err
 	}
 	if err := tgBot.API.SendText(u, "Показания счётчиков"); err != nil {
@@ -533,5 +733,47 @@ func (r *ShowScorerN4) Callback(u *tg.Update) error {
 func (r *ShowScorerN4) Action(u *tg.Update) error {
 	msg := tg.NewMessage(u.FromChat().ID, "Счёт зав воду все")
 	_, err := tgBot.API.Send(msg)
+	return err
+}
+
+type ShowPayment33 struct {
+	InbuttonResponser
+	But keyboard.InKeyboard
+}
+
+func (r *ShowPayment33) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Showing..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.SendText(u, "Последние три показания счётчика"); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *ShowPayment33) Action(u *tg.Update) error {
+	num := ""
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		num = d.Number
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	payments, err := tgBot.DB.Payment.Read(database.Number(num))
+	if err != nil {
+		return err
+	}
+
+	paymentTable := "< Сумма | За месяц | Дата  >\n"
+	for _, payment := range payments {
+		paymentTable += fmt.Sprintf("< %d | %s | %s >\n", payment.Amount, payment.Date, payment.PayMoment)
+	}
+
+	msg := tg.NewMessage(u.FromChat().ID, paymentTable)
+	//msg.ReplyMarkup = r.But
+	_, err = tgBot.API.Send(msg)
 	return err
 }

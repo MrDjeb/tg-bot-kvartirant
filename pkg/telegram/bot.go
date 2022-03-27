@@ -49,6 +49,22 @@ func (a API) SendText(u *tg.Update, text string) error {
 	return err
 }
 
+func (a API) DelMes(u *tg.Update) error {
+	delete := tg.NewDeleteMessage(u.FromChat().ID, u.CallbackQuery.Message.MessageID)
+	if _, err := tgBot.API.Request(delete); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a API) AnsCallback(u *tg.Update, text string) error {
+	callback := tg.NewCallback(u.CallbackQuery.ID, text)
+	if _, err := tgBot.API.Request(callback); err != nil {
+		return err
+	}
+	return nil
+}
+
 type User struct {
 	Handler
 }
@@ -69,23 +85,28 @@ func (b *Bot) Start() error {
 			return err
 		}
 
+	out:
 		switch {
 		case u.CallbackQuery != nil:
 			if err := user.Callback(&u); err != nil {
 				return err
 			}
+			break out
 		case u.Message.IsCommand():
 			if err := user.Command(&u); err != nil {
 				return err
 			}
+			break out
 		case u.Message.Photo != nil:
 			if err := user.Photo(&u); err != nil {
 				return err
 			}
+			break out
 		case u.Message.Text != "":
 			if err := user.Message(&u); err != nil {
 				return err
 			}
+			break out
 		}
 	}
 	return errors.New("there is no handler for this update")

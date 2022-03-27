@@ -21,14 +21,14 @@ type Tables struct {
 }
 
 type Scorer struct {
-	IdTg   TelegramID
+	Number Number
 	Hot_w  ScoreM3 // 0,00 - 65,536 m3
 	Cold_w ScoreM3 // 0,00 - 65,536 m3
 	Date   Date
 }
 
 type Payment struct {
-	IdTg      TelegramID
+	Number    Number
 	Amount    AmountRUB // 0 - 4294967296 Rub
 	PayMoment Date
 	Date      Date
@@ -40,7 +40,8 @@ type Tenant struct {
 }
 
 type Admin struct {
-	IdTg TelegramID
+	IdTgAdmin TelegramID
+	Repairer  string
 }
 
 type Room struct {

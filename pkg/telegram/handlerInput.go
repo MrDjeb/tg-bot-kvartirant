@@ -94,16 +94,19 @@ func (r *Hot_w2) HandleInput(u *tg.Update) error {
 		return nil //error broken
 	}
 
-	tgIdDB := database.TelegramID(u.FromChat().ID)
+	num, err := tgBot.DB.Room.GetRoom(database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
 	scoreDB := database.ScoreM3(score * 100)
 	dateDB := database.Date(time.Now().Format(LAYOUT))
-	isExist, err := tgBot.DB.Scorer.IsExistDay(tgIdDB, dateDB)
+	isExist, err := tgBot.DB.Scorer.IsExistDay(num, dateDB)
 	if err != nil {
 		return err
 	}
 
 	if isExist {
-		if err := tgBot.DB.Scorer.UpdateHot_w(tgIdDB, scoreDB, dateDB); err != nil {
+		if err := tgBot.DB.Scorer.UpdateHot_w(num, scoreDB, dateDB); err != nil {
 			return err
 		}
 		if err := tgBot.API.SendText(u, "Успешно обновлено у текущей даты!"); err != nil {
@@ -123,7 +126,7 @@ func (r *Hot_w2) HandleInput(u *tg.Update) error {
 		if d.Score[0] && d.Score[1] {
 
 			score := database.Scorer{
-				IdTg:   tgIdDB,
+				Number: num,
 				Hot_w:  d.ScoreHot_w,
 				Cold_w: d.ScoreCold_w,
 				Date:   dateDB,
@@ -131,7 +134,7 @@ func (r *Hot_w2) HandleInput(u *tg.Update) error {
 			if err := tgBot.DB.Scorer.Insert(score); err != nil {
 				return err
 			}
-			if err := tgBot.API.SendText(u, "Счёт за воду успешно сохранен c параметрами: "+fmt.Sprintf("%d Hot m3 | %d Cold m3", score.Hot_w/100, score.Cold_w/100)); err != nil {
+			if err := tgBot.API.SendText(u, "Счёт за воду успешно сохранен c параметрами: "+fmt.Sprintf("%s Hot m3 | %s Cold m3", strconv.FormatFloat(float64(score.Hot_w)/100, 'f', -1, 64), strconv.FormatFloat(float64(score.Cold_w)/100, 'f', -1, 64))); err != nil {
 				return err
 			}
 			tgBot.State.Del(cache.KeyT(u.FromChat().ID))
@@ -160,16 +163,19 @@ func (b *Cold_w2) HandleInput(u *tg.Update) error {
 		return nil //error broken
 	}
 
-	tgIdDB := database.TelegramID(u.FromChat().ID)
+	num, err := tgBot.DB.Room.GetRoom(database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
 	scoreDB := database.ScoreM3(score * 100)
 	dateDB := database.Date(time.Now().Format(LAYOUT))
-	isExist, err := tgBot.DB.Scorer.IsExistDay(tgIdDB, dateDB)
+	isExist, err := tgBot.DB.Scorer.IsExistDay(num, dateDB)
 	if err != nil {
 		return err
 	}
 
 	if isExist {
-		if err := tgBot.DB.Scorer.UpdateHot_w(tgIdDB, scoreDB, dateDB); err != nil {
+		if err := tgBot.DB.Scorer.UpdateHot_w(num, scoreDB, dateDB); err != nil {
 			return err
 		}
 		if err := tgBot.API.SendText(u, "Успешно обновлено у текущей даты!"); err != nil {
@@ -189,7 +195,7 @@ func (b *Cold_w2) HandleInput(u *tg.Update) error {
 		if d.Score[0] && d.Score[1] {
 
 			score := database.Scorer{
-				IdTg:   tgIdDB,
+				Number: num,
 				Hot_w:  d.ScoreHot_w,
 				Cold_w: d.ScoreCold_w,
 				Date:   dateDB,
@@ -197,7 +203,7 @@ func (b *Cold_w2) HandleInput(u *tg.Update) error {
 			if err := tgBot.DB.Scorer.Insert(score); err != nil {
 				return err
 			}
-			if err := tgBot.API.SendText(u, "Счёт за воду успешно сохранен c параметрами: "+fmt.Sprintf("%d Hot m3 | %d Cold m3", score.Hot_w/100, score.Cold_w/100)); err != nil {
+			if err := tgBot.API.SendText(u, "Счёт за воду успешно сохранен c параметрами: "+fmt.Sprintf("%s Hot m3 | %s Cold m3", strconv.FormatFloat(float64(score.Hot_w)/100, 'f', -1, 64), strconv.FormatFloat(float64(score.Cold_w)/100, 'f', -1, 64))); err != nil {
 				return err
 			}
 			tgBot.State.Del(cache.KeyT(u.FromChat().ID))
@@ -226,6 +232,11 @@ func (r *Month2) HandleInput(u *tg.Update) error {
 		return nil //error broken
 	}
 
+	num, err := tgBot.DB.Room.GetRoom(database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
+
 	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
 	if !ok {
 		return nil
@@ -238,7 +249,7 @@ func (r *Month2) HandleInput(u *tg.Update) error {
 	if d.Payment[0] && d.Payment[1] && d.Payment[2] {
 
 		payment := database.Payment{
-			IdTg:      database.TelegramID(u.FromChat().ID),
+			Number:    num,
 			Amount:    database.AmountRUB(d.PaymentAmount),
 			PayMoment: database.Date(time.Now().Format(LAYOUT)),
 			Date:      database.Date(getAverageDate(d.PaymentMonth)),
@@ -274,6 +285,12 @@ func (r *Amount2) HandleInput(u *tg.Update) error {
 		}
 		return nil //error broken
 	}
+
+	num, err := tgBot.DB.Room.GetRoom(database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
+
 	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
 	if !ok {
 		return nil
@@ -286,7 +303,7 @@ func (r *Amount2) HandleInput(u *tg.Update) error {
 	if d.Payment[0] && d.Payment[1] && d.Payment[2] {
 
 		payment := database.Payment{
-			IdTg:      database.TelegramID(u.FromChat().ID),
+			Number:    num,
 			Amount:    database.AmountRUB(d.PaymentAmount),
 			PayMoment: database.Date(time.Now().Format(LAYOUT)),
 			Date:      database.Date(getAverageDate(d.PaymentMonth)),
@@ -331,6 +348,12 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 	if err != nil {
 		return err
 	}
+
+	num, err := tgBot.DB.Room.GetRoom(database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
+
 	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
 	if !ok {
 		return nil
@@ -343,7 +366,7 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 	if d.Payment[0] && d.Payment[1] && d.Payment[2] {
 
 		payment := database.Payment{
-			IdTg:      database.TelegramID(u.FromChat().ID),
+			Number:    num,
 			Amount:    database.AmountRUB(d.PaymentAmount),
 			PayMoment: database.Date(time.Now().Format(LAYOUT)),
 			Date:      database.Date(getAverageDate(d.PaymentMonth)),
@@ -374,13 +397,24 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 func (b *Contacts2) HandleInput(u *tg.Update) error {
 
 	tidyStr := strings.TrimSpace(u.Message.Text)
-	if strings.HasPrefix(tidyStr, "@") {
+	if !strings.HasPrefix(tidyStr, "@") {
 		if err := tgBot.API.SendText(u, "Введите username"); err != nil {
 			return err
 		}
 		return nil //error broken
 	}
-	return tgBot.API.SendText(u, "Saved, ok!")
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+	} else {
+		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{})
+	}
+
+	tgBot.DB.Admin.Update(database.Admin{IdTgAdmin: database.TelegramID(u.FromChat().ID), Repairer: tidyStr})
+
+	return tgBot.API.SendText(u, fmt.Sprintf("Добавлен ремонтник %s", tidyStr))
 }
 
 func (r *AddRoom3) HandleInput(u *tg.Update) error {
@@ -400,6 +434,9 @@ func (r *AddRoom3) HandleInput(u *tg.Update) error {
 		return nil
 	}
 	d := st.Data.(cache.AdminData)
+	if d.AddingRooms == nil {
+		d.AddingRooms = make(map[string]string)
+	}
 	d.AddingRooms[dataToken] = tidyStr
 	tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
 

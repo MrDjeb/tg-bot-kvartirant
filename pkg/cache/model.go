@@ -26,14 +26,8 @@ func (s *TenantData) Erase() {
 
 type AdminData struct {
 	AddingRooms map[string]string
+	Rooms       []string
+	RoomsDel    []string
+	Number      string
+	NumberDel   string
 }
-
-/*func (s *TenantState) CleanProcess() {
-	s.TenantHot_w2 = false
-	s.TenantCold_w2 = false
-	for i := range s.TenantPayment {
-		if s.TenantPayment[i] == 1 {
-			s.TenantPayment[i] = 0
-		}
-	}
-}*/
