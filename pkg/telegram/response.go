@@ -357,7 +357,7 @@ type AdminCancel struct{ CommandResponser }
 
 func (r *AdminCancel) Action(u *tg.Update) error {
 	tgBot.State.Del(cache.KeyT(u.FromChat().ID))
-	return tgBot.API.SendText(u, "Операци отменена")
+	return tgBot.API.SendText(u, "Операция отменена")
 }
 
 type AdminUnknownCmd struct{ CommandResponser }
@@ -690,49 +690,86 @@ func (r *ShowScorer33) Action(u *tg.Update) error {
 	if err != nil {
 		return err
 	}
-
-	scoreTable := &strings.Builder{}
-	table := tablewriter.NewWriter(scoreTable)
-	//table.SetColWidth(20)
-	//table.SetColMinWidth(2, 40)
-	table.SetRowSeparator("━")
-	//table.SetTablePadding("*")
-	//table.SetBorder(false)
-	//table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	table.SetCenterSeparator("╋")
-	table.SetColumnSeparator("┃") //https://unicode-table.com/ru/blocks/box-drawing/
-	table.SetHeader([]string{"hot water", "cold water", "date"})
-	//table.SetCaption(true, num)
-	for _, score := range scorers {
-		row := []string{strconv.FormatFloat(float64(score.Hot_w)/100, 'f', -1, 64), strconv.FormatFloat(float64(score.Cold_w)/100, 'f', -1, 64), string(score.Date)}
-		table.Append(row)
+	flag := len(scorers) > MAX_SHOW_SCORER
+	if flag {
+		scorers = scorers[:MAX_SHOW_SCORER]
 	}
-	table.Render()
 
-	msg := tg.NewMessage(u.FromChat().ID, "🗝 **〈"+num+"〉**  ♨/💧\n```\n"+scoreTable.String()+"```")
+	msg := tg.NewMessage(u.FromChat().ID, "🗝 **〈"+num+"〉**  ♨/💧\n"+getScorerTable(&scorers, flag))
 	msg.ParseMode = tg.ModeMarkdown
-	msg.ReplyMarkup = r.But
+	if flag {
+		msg.ReplyMarkup = r.But
+	}
 	_, err = tgBot.API.Send(msg)
 	return err
 }
 
 type ShowScorerN4 struct {
 	InbuttonResponser
+	But keyboard.InKeyboard
 }
 
 func (r *ShowScorerN4) Callback(u *tg.Update) error {
-	if err := tgBot.API.AnsCallback(u, "Showing..."); err != nil {
-		return err
-	}
-	if err := tgBot.API.SendText(u, "Показания счётчиков"); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Showing all..."); err != nil {
 		return err
 	}
 	return r.Action(u)
 }
 
 func (r *ShowScorerN4) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "Счёт зав воду все")
-	_, err := tgBot.API.Send(msg)
+	num := ""
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		num = d.Number
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	scorers, err := tgBot.DB.Scorer.Read(database.Number(num))
+	if err != nil {
+		return err
+	}
+
+	Emsg := tg.NewEditMessageTextAndMarkup(u.FromChat().ID, u.CallbackQuery.Message.MessageID, "🗝 **〈"+num+"〉**  ♨/💧\n"+getScorerTable(&scorers, false), tg.InlineKeyboardMarkup(r.But))
+	Emsg.ParseMode = tg.ModeMarkdown
+	_, err = tgBot.API.Send(Emsg)
+	return err
+}
+
+type ShowScorerB3 struct {
+	InbuttonResponser
+	But keyboard.InKeyboard
+}
+
+func (r *ShowScorerB3) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Showing..."); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *ShowScorerB3) Action(u *tg.Update) error {
+	num := ""
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		num = d.Number
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	scorers, err := tgBot.DB.Scorer.Read(database.Number(num))
+	if err != nil {
+		return err
+	}
+	scorers = scorers[:MAX_SHOW_SCORER]
+
+	Emsg := tg.NewEditMessageTextAndMarkup(u.FromChat().ID, u.CallbackQuery.Message.MessageID, "🗝 **〈"+num+"〉**  ♨/💧\n"+getScorerTable(&scorers, true), tg.InlineKeyboardMarkup(r.But))
+	Emsg.ParseMode = tg.ModeMarkdown
+	_, err = tgBot.API.Send(Emsg)
 	return err
 }
 
@@ -745,7 +782,7 @@ func (r *ShowPayment33) Callback(u *tg.Update) error {
 	if err := tgBot.API.AnsCallback(u, "Showing..."); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Последние три показания счётчика"); err != nil {
+	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
 	return r.Action(u)
@@ -767,13 +804,106 @@ func (r *ShowPayment33) Action(u *tg.Update) error {
 		return err
 	}
 
-	paymentTable := "< Сумма | За месяц | Дата  >\n"
-	for _, payment := range payments {
-		paymentTable += fmt.Sprintf("< %d | %s | %s >\n", payment.Amount, payment.Date, payment.PayMoment)
+	msg := tg.NewMessage(u.FromChat().ID, "🗝 **〈"+num+"〉**  🧾\n"+getPaymentTable(&payments))
+	msg.ParseMode = tg.ModeMarkdown
+	_, err = tgBot.API.Send(msg)
+	if err != nil {
+		return err
 	}
 
-	msg := tg.NewMessage(u.FromChat().ID, paymentTable)
-	//msg.ReplyMarkup = r.But
+	for _, payment := range payments {
+		phConfig := tg.NewPhoto(u.FromChat().ID, tg.FileBytes{Name: string(payment.PayMoment), Bytes: payment.Photo})
+		phConfig.Caption = string(payment.PayMoment)
+		_, err = tgBot.API.Send(phConfig)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type ShowTenants3 struct{ InbuttonResponser }
+
+func (r *ShowTenants3) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Showing tenants info..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *ShowTenants3) Action(u *tg.Update) error {
+	num := ""
+
+	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	if ok {
+		d := st.Data.(cache.AdminData)
+		num = d.Number
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	rooms, err := tgBot.DB.Room.ReadTenants(database.Number(num))
+	if err != nil {
+		return err
+	}
+
+	usernames := "🗝 **〈" + num + "〉**  📲\n\n"
+
+	for _, room := range rooms {
+		member, err := tgBot.API.GetChatMember(tg.GetChatMemberConfig{ChatConfigWithUser: tg.ChatConfigWithUser{ChatID: int64(room.IdTgTenant), UserID: int64(room.IdTgTenant)}})
+		if err != nil {
+			return nil
+		}
+		if member.User.UserName != "" {
+			usernames += "@" + member.User.UserName + " " + member.User.FirstName + "\n"
+		} else {
+			usernames += member.User.FirstName + "\n"
+		}
+	}
+	msg := tg.NewMessage(u.FromChat().ID, usernames)
+	msg.ParseMode = tg.ModeMarkdown
 	_, err = tgBot.API.Send(msg)
 	return err
+}
+
+func getScorerTable(scorers *[]database.Scorer, flag bool) string {
+	scoreTable := &strings.Builder{}
+	table := tablewriter.NewWriter(scoreTable)
+	//table.SetColWidth(20)
+	//table.SetColMinWidth(2, 40)
+	//table.SetTablePadding("*")
+	//table.SetBorder(false)
+	//table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	table.SetRowSeparator("━")
+	table.SetCenterSeparator("╋")
+	table.SetColumnSeparator("┃") //https://unicode-table.com/ru/blocks/box-drawing/
+	table.SetHeader([]string{"hot water", "cold water", "date"})
+	//table.SetCaption(true, num)
+	for _, score := range *scorers {
+		row := []string{strconv.FormatFloat(float64(score.Hot_w)/100, 'f', -1, 64), strconv.FormatFloat(float64(score.Cold_w)/100, 'f', -1, 64), string(score.Date)}
+		table.Append(row)
+	}
+	if flag {
+		table.Append([]string{"...", "...", "..."})
+	}
+	table.Render()
+	return "```\n" + scoreTable.String() + "```"
+}
+
+func getPaymentTable(payments *[]database.Payment) string {
+	paymentTable := &strings.Builder{}
+	table := tablewriter.NewWriter(paymentTable)
+	table.SetRowSeparator("━")
+	table.SetCenterSeparator("╋")
+	table.SetColumnSeparator("┃")
+	table.SetHeader([]string{"date", "amount", "pay moment"})
+	for _, payment := range *payments {
+		row := []string{string(payment.Date), strconv.FormatUint(uint64(payment.Amount), 10), string(payment.PayMoment)}
+		table.Append(row)
+	}
+	table.Render()
+	return "```\n" + paymentTable.String() + "```"
 }

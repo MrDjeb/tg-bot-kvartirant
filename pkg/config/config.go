@@ -71,7 +71,9 @@ type Admin struct {
 type Room struct {
 	ShowScorer33  string `mapstructure:"show_scorer33"`
 	ShowScorerN4  string `mapstructure:"show_scorerN4"`
+	ShowScorerB3  string `mapstructure:"show_scorerB3"`
 	ShowPayment33 string `mapstructure:"show_payment33"`
+	ShowTenants3  string `mapstructure:"show_tenants3"`
 }
 type Settings struct {
 	Edit2     string `mapstructure:"edit2"`

@@ -371,6 +371,25 @@ func (r *DBRoom) Read(tgid TelegramID) ([]Room, error) {
 	return rooms, nil
 }
 
+func (r *DBRoom) ReadTenants(num Number) ([]Room, error) {
+	log.Println("SELECT * FROM room WHERE number = ?;", num)
+
+	rows, err := r.DB.Query("SELECT * FROM room WHERE number = ?;", num)
+	if err != nil {
+		return []Room{}, err
+	}
+	defer rows.Close()
+	var rooms []Room
+	for rows.Next() {
+		var p Room
+		if err := rows.Scan(&p.IdTgAdmin, &p.IdTgTenant, &p.Number); err != nil {
+			return []Room{}, err
+		}
+		rooms = append(rooms, p)
+	}
+	return rooms, nil
+}
+
 func (r *DBRoom) GetRoom(tgid TelegramID) (Number, error) {
 	log.Println("SELECT number FROM room WHERE idTenant = ?;", tgid)
 

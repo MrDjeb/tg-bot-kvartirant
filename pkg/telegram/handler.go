@@ -10,7 +10,10 @@ import (
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-const DEL = "$"
+const (
+	DEL             = "$"
+	MAX_SHOW_SCORER = 5
+)
 
 const (
 	Edit2BackButInt int = iota - 256
@@ -200,10 +203,12 @@ func (h *AdminHandler) New() {
 		TA.Settings1: &Settings1{But: B.Settings},
 	}
 	h.Inb = map[string]InbuttonResponser{
-		TA.Room2:                                 &Room2{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorer33, TA.Room.ShowPayment33}, {TC.BackBut}}, [][]string{{TA.Room.ShowScorer33, TA.Room.ShowPayment33}, {Room2BackBut}})},
+		TA.Room2:                                 &Room2{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorer33, TA.Room.ShowPayment33}, {TA.Room.ShowTenants3}, {TC.BackBut}}, [][]string{{TA.Room.ShowScorer33, TA.Room.ShowPayment33}, {TA.Room.ShowTenants3}, {Room2BackBut}})},
 		TA.Room.ShowScorer33:                     &ShowScorer33{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorerN4}}, [][]string{{TA.Room.ShowScorerN4}})},
+		TA.Room.ShowScorerN4:                     &ShowScorerN4{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorerB3}}, [][]string{{TA.Room.ShowScorerB3}})},
+		TA.Room.ShowScorerB3:                     &ShowScorerB3{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorerN4}}, [][]string{{TA.Room.ShowScorerN4}})},
 		TA.Room.ShowPayment33:                    &ShowPayment33{},
-		TA.Room.ShowScorerN4:                     &ShowScorerN4{},
+		TA.Room.ShowTenants3:                     &ShowTenants3{},
 		TA.Settings.Edit2:                        &Edit2{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.Edit.AddRoom3, TA.Settings.Edit.RemoveRoom3}, {TC.BackBut}}, [][]string{{TA.Settings.Edit.AddRoom3, TA.Settings.Edit.RemoveRoom3}, {Edit2BackBut}})},
 		TA.Settings.Reminder2:                    &Reminder2{},
 		TA.Settings.Edit.RemoveRoom3:             &RemoveRoom3{},

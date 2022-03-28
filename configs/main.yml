@@ -17,7 +17,9 @@ text:
       room:
         show_scorer33: "Показания счётчика"
         show_scorerN4: "Все..."
+        show_scorerB3: "Меньше..."
         show_payment33: "Квитанции"
+        show_tenants3: "Квартиранты"
       settings1: "Настройки"
       settings:
         edit2: "Добавить/удалить квартиру"
