@@ -907,3 +907,10 @@ func getPaymentTable(payments *[]database.Payment) string {
 	table.Render()
 	return "```\n" + paymentTable.String() + "```"
 }
+
+/*
+func markImage(fotoByte []byte) tg.PhotoConfig {
+	img, _, _ := image.Decode(bytes.NewReader(fotoByte))
+
+	return tg.NewPhoto(u.FromChat().ID, tg.FileBytes{Name: string(payment.PayMoment), Bytes: payment.Photo})
+}*/
