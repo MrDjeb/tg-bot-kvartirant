@@ -55,7 +55,7 @@ jobs:
             export GODMODE_SECRET=${{ secrets.GODMODE_SECRET }}
 
             # Run a new container from a new image
-            sudo docker run -e TG_TOKEN -e ACCESS_SECRET -e GODMODE_SECRET -d \
+            docker run -e TG_TOKEN -e ACCESS_SECRET -e GODMODE_SECRET -d \
             --restart always \
             --publish 80:80 \
             --name $(echo $CONTAINER_NAME) \
