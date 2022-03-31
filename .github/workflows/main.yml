@@ -8,7 +8,7 @@ on:
 env:
   REGISTRY: "crpp6o1a47k42ls7uslj"
   IMAGE_NAME: "tg-bot-kvartirant"
-  CONTAINER_NAME: "tg-bot-kvartirant"
+  CONTAINER_NAME: kvartirant"
 
 jobs:
   build_and_push:
@@ -58,4 +58,4 @@ jobs:
             --restart always \
             --publish 80:80 \
             --name $(echo $CONTAINER_NAME) \
-            $(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
+            cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
