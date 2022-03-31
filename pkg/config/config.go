@@ -1,8 +1,6 @@
 package config
 
 import (
-	"os"
-
 	"github.com/spf13/viper"
 )
 
@@ -156,10 +154,6 @@ func unmarshal(cfg *Config) error {
 }
 
 func fromEnv(cfg *Config) error {
-	os.Setenv("TG_TOKEN", "5150854501:AAHM8auF6KgpeHIbw2BHSVMJ5CRPshzYU5s")
-	os.Setenv("ACCESS_SECRET", "9443bb08931675ec730ad86c722b9908eb988e89385299985e934ffa05e9e1c9")
-	os.Setenv("GODMODE_SECRET", "9443bb08931675ec730ad86c722b9908eb988e89385299985e934ffa05e9e1c9")
-
 	if err := viper.BindEnv("tg_token"); err != nil {
 		return err
 	}

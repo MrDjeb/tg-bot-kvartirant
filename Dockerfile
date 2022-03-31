@@ -1,5 +1,7 @@
 FROM golang:1.17-alpine3.15 AS builder
 
+RUN go version
+
 COPY . /github.com/MrDjeb/tg-bot-kvartirant/
 WORKDIR /github.com/MrDjeb/tg-bot-kvartirant/
 
