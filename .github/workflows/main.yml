@@ -8,7 +8,7 @@ on:
 env:
   REGISTRY: "crpp6o1a47k42ls7uslj"
   IMAGE_NAME: "tg-bot-kvartirant"
-  CONTAINER_NAME: "kvartirant"
+  CONTAINER_NAME: "tg-bot-kvartirant"
 
 jobs:
   build_and_push:
