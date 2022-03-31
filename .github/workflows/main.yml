@@ -8,7 +8,7 @@ on:
 env:
   REGISTRY: "crpp6o1a47k42ls7uslj"
   IMAGE_NAME: "tg-bot-kvartirant"
-  CONTAINER_NAME: kvartirant"
+  CONTAINER_NAME: "kvartirant"
 
 jobs:
   build_and_push:
@@ -41,12 +41,13 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }} 
           envs: REGISTRY, IMAGE_NAME, CONTAINER_NAME, GITHUB_SHA
           script: |
+            sudo su
             # Log in to Yandex Cloud Container Registry with OAuth token
-            sudo docker login --username oauth --password ${{ secrets.YANDEXCLOUD_OAUTH_TOKEN }} cr.yandex
-            # Stop running container
-            sudo docker stop $(echo $CONTAINER_NAME)
-            # Remove old container
-            sudo docker rm $(echo $CONTAINER_NAME)
+            docker login --username oauth --password ${{ secrets.YANDEXCLOUD_OAUTH_TOKEN }} cr.yandex
+            # Stop running containers
+            docker stop $(docker ps -a -q)
+            # Remove old containers
+            docker rm $(docker ps -a -q)
 
             # Set env variables
             export TG_TOKEN=${{ secrets.TG_TOKEN }}
