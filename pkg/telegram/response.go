@@ -410,7 +410,7 @@ func (r *Rooms1) Action(u *tg.Update) error {
 		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: cache.AdminData{Rooms: numbers}})
 	}
 
-	msg.ReplyMarkup = keyboard.MakeInKeyboard(formatNumbers(numbers, tgBot.Text.Admin.Room2))
+	msg.ReplyMarkup = keyboard.MakeInKeyboard(keyboard.FormatNumbers(numbers, tgBot.Text.Admin.Room2))
 	_, err = tgBot.API.Send(msg)
 	return err
 }
@@ -590,7 +590,7 @@ func (r *RemoveRoom3) Action(u *tg.Update) error {
 	} else {
 		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: cache.AdminData{Rooms: numbers}})
 	}
-	names, data := formatNumbers(numbers, tgBot.Text.Admin.Settings.Edit.Removing4)
+	names, data := keyboard.FormatNumbers(numbers, tgBot.Text.Admin.Settings.Edit.Removing4)
 	names, data = append(names, []string{tgBot.Text.CommonCommand.BackBut}), append(data, []string{RemoveRoom3BackBut})
 	msg.ReplyMarkup = keyboard.MakeInKeyboard(names, data)
 	_, err = tgBot.API.Send(msg)

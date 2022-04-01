@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	DEL             = "$"
 	MAX_SHOW_SCORER = 3
 )
 
@@ -109,7 +108,6 @@ func (h *UnknownHandler) Message(u *tg.Update) error {
 type TenantHandler struct{ HandlerResponse }
 
 func (h *TenantHandler) New() {
-	b := keyboard.NewButtons(tgBot.Text).Tenant
 	t := tgBot.Text.Tenant
 	h.Cmd = map[string]CommandResponser{
 		tgBot.Text.CommonCommand.Start:   &TenantStart{But: keyboard.MakeKeyboard([]string{t.Water1, t.Receipt1}, []string{t.Report1})},
@@ -121,9 +119,14 @@ func (h *TenantHandler) New() {
 		tgBot.Text.CommonCommand.Unknown: &TenantUnknownMes{},
 	}
 	h.But = map[string]ButtonResponser{
-		tgBot.Text.Tenant.Water1:   &Water1{But: b.Water},
-		tgBot.Text.Tenant.Receipt1: &Receipt1{But: b.Receipt},
-		tgBot.Text.Tenant.Report1:  &Report1{},
+		tgBot.Text.Tenant.Water1: &Water1{But: tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(t.Water.Hot_w2, t.Water.Hot_w2),
+			tg.NewInlineKeyboardButtonData(t.Water.Cold_w2, t.Water.Cold_w2))},
+		tgBot.Text.Tenant.Receipt1: &Receipt1{But: tg.NewInlineKeyboardRow(
+			tg.NewInlineKeyboardButtonData(t.Receipt.Month2, t.Receipt.Month2),
+			tg.NewInlineKeyboardButtonData(t.Receipt.Amount2, t.Receipt.Amount2),
+			tg.NewInlineKeyboardButtonData(t.Receipt.Receipt2, t.Receipt.Receipt2),
+		)},
+		tgBot.Text.Tenant.Report1: &Report1{},
 	}
 	h.Inp = map[string]InputResponser{
 		tgBot.Text.Tenant.Water.Cold_w2:    &Cold_w2{},
@@ -186,11 +189,10 @@ func (h *TenantHandler) Message(u *tg.Update) error {
 type AdminHandler struct{ HandlerResponse }
 
 func (h *AdminHandler) New() {
-	B := keyboard.NewButtons(tgBot.Text).Admin
 	TC := tgBot.Text.CommonCommand
 	TA := tgBot.Text.Admin
 	h.Cmd = map[string]CommandResponser{
-		TC.Start:   &AdminStart{But: B.Keyboard},
+		TC.Start:   &AdminStart{But: keyboard.MakeKeyboard([]string{TA.Rooms1, TA.Settings1})},
 		TC.Cancel:  &AdminCancel{},
 		TC.Unknown: &AdminUnknownCmd{},
 	}
@@ -200,7 +202,7 @@ func (h *AdminHandler) New() {
 	}
 	h.But = map[string]ButtonResponser{
 		TA.Rooms1:    &Rooms1{},
-		TA.Settings1: &Settings1{But: B.Settings},
+		TA.Settings1: &Settings1{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.Edit2}, {TA.Settings.Contacts2}, {TA.Settings.Reminder2}}, [][]string{{TA.Settings.Edit2}, {TA.Settings.Contacts2}, {TA.Settings.Reminder2}})},
 	}
 	h.Inb = map[string]InbuttonResponser{
 		TA.Room2:                                 &Room2{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorer33, TA.Room.ShowPayment33}, {TA.Room.ShowTenants3}, {TC.BackBut}}, [][]string{{TA.Room.ShowScorer33, TA.Room.ShowPayment33}, {TA.Room.ShowTenants3}, {Room2BackBut}})},
@@ -246,9 +248,9 @@ func (h *AdminHandler) Callback(u *tg.Update) error {
 	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
 	if ok {
 		d := st.Data.(cache.AdminData)
-		num := u.CallbackQuery.Data[strings.Index(u.CallbackQuery.Data, DEL)+1:]
+		num := u.CallbackQuery.Data[strings.Index(u.CallbackQuery.Data, keyboard.DEL)+1:]
 		if isRoom(num, d.Rooms) {
-			prefix := u.CallbackQuery.Data[:strings.Index(u.CallbackQuery.Data, DEL)]
+			prefix := u.CallbackQuery.Data[:strings.Index(u.CallbackQuery.Data, keyboard.DEL)]
 
 			inb, ok := h.Inb[prefix]
 			if ok {
@@ -326,42 +328,6 @@ func isRoom(number string, numbers []string) bool {
 		}
 	}
 	return false
-}
-
-func formatNumbers(numbers []string, prefix string) (fNum [][]string, fData [][]string) {
-	if (len(numbers)-1)/4 > 0 {
-		fNum = make([][]string, (len(numbers)-1)/4)
-		for i := range fNum {
-			fNum[i] = make([]string, 4)
-		}
-		fNum = append(fNum, make([]string, len(numbers)%4))
-	} else {
-		fNum = [][]string{numbers}
-	}
-
-	for i, num := range numbers {
-		//fmt.Printf("%d | %d  %s\n", i/4, i%4, num)
-		fNum[i/4][i%4] = num
-	}
-
-	if (len(numbers)-1)/4 > 0 {
-		fData = make([][]string, (len(numbers)-1)/4)
-		for i := range fData {
-			fData[i] = make([]string, 4)
-		}
-		fData = append(fData, make([]string, len(numbers)%4))
-	} else {
-		fData = append(fData, make([]string, len(numbers)))
-	}
-	fmt.Println(fNum, fData)
-	for i := 0; i < len(fData); i++ {
-		for j := 0; j < len(fData[i]); j++ {
-			fData[i][j] = prefix + DEL + fNum[i][j]
-		}
-	}
-	fmt.Println(fNum, fData)
-
-	return fNum, fData
 }
 
 func NewBackResponser(t string) BackResponser {

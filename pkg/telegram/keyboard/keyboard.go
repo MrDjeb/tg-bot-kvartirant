@@ -1,54 +1,13 @@
 package keyboard
 
 import (
-	"github.com/MrDjeb/tg-bot-kvartirant/pkg/config"
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type Keyboard tg.ReplyKeyboardMarkup
 type InKeyboard tg.InlineKeyboardMarkup
 
-type Buttons struct {
-	Tenant Tenant
-	Admin  Admin
-}
-
-type Tenant struct {
-	Keyboard Keyboard
-	Water    []tg.InlineKeyboardButton
-	Receipt  []tg.InlineKeyboardButton
-}
-
-type Admin struct {
-	Keyboard Keyboard
-	Settings InKeyboard
-}
-
-func NewButtons(text config.Text) Buttons {
-	t := text.Buttons.Tenant
-	a := text.Buttons.Admin
-	return Buttons{
-		Tenant: Tenant{
-			Water: tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(t.Water.Hot_w2, t.Water.Hot_w2),
-				tg.NewInlineKeyboardButtonData(t.Water.Cold_w2, t.Water.Cold_w2)),
-
-			Receipt: tg.NewInlineKeyboardRow(
-				tg.NewInlineKeyboardButtonData(t.Receipt.Month2, t.Receipt.Month2),
-				tg.NewInlineKeyboardButtonData(t.Receipt.Amount2, t.Receipt.Amount2),
-				tg.NewInlineKeyboardButtonData(t.Receipt.Receipt2, t.Receipt.Receipt2),
-			),
-		},
-		Admin: Admin{
-			Keyboard: Keyboard(tg.NewReplyKeyboard(
-				tg.NewKeyboardButtonRow(tg.NewKeyboardButton(a.Rooms1), tg.NewKeyboardButton(a.Settings1)))),
-
-			Settings: InKeyboard(tg.NewInlineKeyboardMarkup(
-				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(a.Settings.Edit2, a.Settings.Edit2)),
-				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(a.Settings.Contacts2, a.Settings.Contacts2)),
-				tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(a.Settings.Reminder2, a.Settings.Reminder2)))),
-		},
-	}
-}
+const DEL = "$"
 
 func MakeKeyboard(names ...[]string) Keyboard {
 	var buttons [][]tg.KeyboardButton
@@ -83,4 +42,38 @@ func MakeInKeyboard(names [][]string, data [][]string) InKeyboard {
 
 	}
 	return InKeyboard(tg.NewInlineKeyboardMarkup(buttons...))
+}
+
+func FormatNumbers(numbers []string, prefix string) (fNum [][]string, fData [][]string) {
+	if (len(numbers)-1)/4 > 0 {
+		fNum = make([][]string, (len(numbers)-1)/4)
+		for i := range fNum {
+			fNum[i] = make([]string, 4)
+		}
+		fNum = append(fNum, make([]string, len(numbers)%4))
+	} else {
+		fNum = [][]string{numbers}
+	}
+
+	for i, num := range numbers {
+		//fmt.Printf("%d | %d  %s\n", i/4, i%4, num)
+		fNum[i/4][i%4] = num
+	}
+
+	if (len(numbers)-1)/4 > 0 {
+		fData = make([][]string, (len(numbers)-1)/4)
+		for i := range fData {
+			fData[i] = make([]string, 4)
+		}
+		fData = append(fData, make([]string, len(numbers)%4))
+	} else {
+		fData = append(fData, make([]string, len(numbers)))
+	}
+	for i := 0; i < len(fData); i++ {
+		for j := 0; j < len(fData[i]); j++ {
+			fData[i][j] = prefix + DEL + fNum[i][j]
+		}
+	}
+
+	return fNum, fData
 }
