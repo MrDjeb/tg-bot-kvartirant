@@ -45,9 +45,8 @@ jobs:
             # Log in to Yandex Cloud Container Registry with OAuth token
             docker login --username oauth --password ${{ secrets.YANDEXCLOUD_OAUTH_TOKEN }} cr.yandex
             # Stop running containers
-            docker stop $(docker ps -a -q)
             # Remove old containers
-            docker rm $(docker ps -a -q)
+            docker ps -q --filter "name=$(echo $CONTAINER_NAME)" | grep -q . && docker stop $(echo $CONTAINER_NAME) && docker rm -fv $(echo $CONTAINER_NAME)
 
             # Set env variables
             export TG_TOKEN=${{ secrets.TG_TOKEN }}
