@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"reflect"
 	"runtime"
 	"sync"
@@ -215,6 +216,7 @@ func (c *Cache) collapse() {
 		case <-c.isClose:
 			return
 		}
-		log.Println("Collapse Cache!")
+		logC := log.New(os.Stderr, "[CACHE] ", log.LstdFlags|log.Lmsgprefix)
+		logC.Println("Collapse Cache!")
 	}
 }
