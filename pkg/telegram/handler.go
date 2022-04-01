@@ -12,7 +12,7 @@ import (
 
 const (
 	DEL             = "$"
-	MAX_SHOW_SCORER = 5
+	MAX_SHOW_SCORER = 3
 )
 
 const (

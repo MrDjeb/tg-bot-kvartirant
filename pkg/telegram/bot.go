@@ -70,10 +70,6 @@ type User struct {
 }
 
 func (b *Bot) Start() error {
-	/*if err := b.DB.Tenant.Insert(database.Tenant{IdTg: 410345981}); err != nil {
-		return err
-	}*/
-
 	u := tg.NewUpdate(0)
 	u.Timeout = 60
 	updates := b.API.GetUpdatesChan(u)

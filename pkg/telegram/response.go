@@ -397,6 +397,10 @@ func (r *Rooms1) Action(u *tg.Update) error {
 		return err
 	}
 
+	if len(numbers) == 0 {
+		return tgBot.API.SendText(u, "Список комнат пуст.")
+	}
+
 	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
 	if ok {
 		d := st.Data.(cache.AdminData)
@@ -572,6 +576,10 @@ func (r *RemoveRoom3) Action(u *tg.Update) error {
 	numbers, err := getRooms(u.FromChat().ID)
 	if err != nil {
 		return err
+	}
+
+	if len(numbers) == 0 {
+		return tgBot.API.SendText(u, "Список комнат пуст.")
 	}
 
 	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))

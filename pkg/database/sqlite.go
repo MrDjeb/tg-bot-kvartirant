@@ -409,7 +409,7 @@ func (r *DBRoom) GetAdmin(tgid TelegramID) (TelegramID, error) {
 func Init() (Tables, error) {
 	log.SetPrefix("database ")
 
-	db, err := sql.Open("sqlite3", "sqlite.db")
+	db, err := sql.Open("sqlite3", ".sqlite/stage.db")
 	if err != nil {
 		return Tables{}, err
 	}
