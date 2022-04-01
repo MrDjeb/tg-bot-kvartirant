@@ -155,9 +155,7 @@ func unmarshal(cfg *Config) error {
 }
 
 func fromEnv(cfg *Config) error {
-	if err := godotenv.Load(); err != nil {
-		return err
-	}
+	godotenv.Load()
 
 	if err := viper.BindEnv("tg_token"); err != nil {
 		return err
