@@ -24,10 +24,9 @@ type Admin struct {
 	Settings InKeyboard
 }
 
-func NewButtons() Buttons {
-	cfg, _ := config.Init() //error no hand
-	t := cfg.Text.Buttons.Tenant
-	a := cfg.Text.Buttons.Admin
+func NewButtons(text config.Text) Buttons {
+	t := text.Buttons.Tenant
+	a := text.Buttons.Admin
 	return Buttons{
 		Tenant: Tenant{
 			Water: tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(t.Water.Hot_w2, t.Water.Hot_w2),

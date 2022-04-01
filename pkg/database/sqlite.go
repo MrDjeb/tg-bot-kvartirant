@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"os"
 
 	"github.com/mattn/go-sqlite3"
 )
@@ -27,14 +28,14 @@ func (r *DBScorer) Migrate() error {
         cold_w INTEGER,
         date TEXT
     );`
-	log.Println(query)
+	logDB.Println(query)
 
 	_, err := r.DB.Exec(query)
 	return err
 }
 
 func (r *DBScorer) Insert(sc Scorer) error {
-	log.Println("INSERT INTO scorer(number, hot_w, cold_w, date) values(?,?,?,?)",
+	logDB.Println("INSERT INTO scorer(number, hot_w, cold_w, date) values(?,?,?,?)",
 		sc.Number, sc.Hot_w, sc.Cold_w, sc.Date)
 
 	_, err := r.DB.Exec("INSERT INTO scorer(number, hot_w, cold_w, date) values(?,?,?,?)",
@@ -53,7 +54,7 @@ func (r *DBScorer) Insert(sc Scorer) error {
 }
 
 func (r *DBScorer) Delete(num Number) error {
-	log.Println("DELETE FROM scorer WHERE number = ?", num)
+	logDB.Println("DELETE FROM scorer WHERE number = ?", num)
 
 	_, err := r.DB.Exec("DELETE FROM scorer WHERE number = ?", num)
 	if err != nil {
@@ -64,7 +65,7 @@ func (r *DBScorer) Delete(num Number) error {
 }
 
 func (s DBScorer) IsExistDay(num Number, date Date) (bool, error) {
-	log.Println("SELECT date FROM scorer WHERE number = ? AND date = ?;", num, date)
+	logDB.Println("SELECT date FROM scorer WHERE number = ? AND date = ?;", num, date)
 
 	rows, err := s.DB.Query("SELECT date FROM scorer WHERE number = ? AND date = ?;", num, date)
 	if err != nil {
@@ -75,7 +76,7 @@ func (s DBScorer) IsExistDay(num Number, date Date) (bool, error) {
 }
 
 func (s DBScorer) UpdateCold_w(num Number, score ScoreM3, date Date) error {
-	log.Println("UPDATE scorer SET cold_w = ? WHERE number = ? AND date = ?", score, num, date)
+	logDB.Println("UPDATE scorer SET cold_w = ? WHERE number = ? AND date = ?", score, num, date)
 
 	result, err := s.DB.Exec("UPDATE scorer SET cold_w = ? WHERE number = ? AND date = ?", score, num, date)
 	if err != nil {
@@ -92,7 +93,7 @@ func (s DBScorer) UpdateCold_w(num Number, score ScoreM3, date Date) error {
 }
 
 func (s DBScorer) UpdateHot_w(num Number, score ScoreM3, date Date) error {
-	log.Println("UPDATE scorer SET hot_w = ? WHERE number = ? AND date = ?", score, num, date)
+	logDB.Println("UPDATE scorer SET hot_w = ? WHERE number = ? AND date = ?", score, num, date)
 
 	result, err := s.DB.Exec("UPDATE scorer SET hot_w = ? WHERE number = ? AND date = ?", score, num, date)
 	if err != nil {
@@ -109,7 +110,7 @@ func (s DBScorer) UpdateHot_w(num Number, score ScoreM3, date Date) error {
 }
 
 func (r *DBScorer) Read(num Number) ([]Scorer, error) {
-	log.Println("SELECT * FROM scorer WHERE number = ?;", num)
+	logDB.Println("SELECT * FROM scorer WHERE number = ?;", num)
 
 	rows, err := r.DB.Query("SELECT * FROM scorer WHERE number = ?;", num)
 	if err != nil {
@@ -138,14 +139,14 @@ func (r *DBPayment) Migrate() error {
         date TEXT,
         photo BLOB
     );`
-	log.Println(query)
+	logDB.Println(query)
 
 	_, err := r.DB.Exec(query)
 	return err
 }
 
 func (r *DBPayment) Insert(pa Payment) error {
-	log.Println("INSERT INTO payment(number, amount, payMoment, date, photo) values(?,?,?,?,?)",
+	logDB.Println("INSERT INTO payment(number, amount, payMoment, date, photo) values(?,?,?,?,?)",
 		pa.Number, pa.Amount, pa.PayMoment, pa.Date, len(pa.Photo))
 
 	_, err := r.DB.Exec("INSERT INTO payment(number, amount, payMoment, date, photo) values(?,?,?,?,?)",
@@ -164,7 +165,7 @@ func (r *DBPayment) Insert(pa Payment) error {
 }
 
 func (r *DBPayment) Delete(num Number) error {
-	log.Println("DELETE FROM payment WHERE number = ?", num)
+	logDB.Println("DELETE FROM payment WHERE number = ?", num)
 
 	_, err := r.DB.Exec("DELETE FROM payment WHERE number = ?", num)
 	if err != nil {
@@ -175,7 +176,7 @@ func (r *DBPayment) Delete(num Number) error {
 }
 
 func (r *DBPayment) Read(num Number) ([]Payment, error) {
-	log.Println("SELECT * FROM payment WHERE number = ?;", num)
+	logDB.Println("SELECT * FROM payment WHERE number = ?;", num)
 
 	rows, err := r.DB.Query("SELECT * FROM payment WHERE number = ?;", num)
 	if err != nil {
@@ -200,14 +201,14 @@ func (r *DBTenant) Migrate() error {
     CREATE TABLE IF NOT EXISTS tenant(
         idTenant INTEGER
     );`
-	log.Println(query)
+	logDB.Println(query)
 
 	_, err := r.DB.Exec(query)
 	return err
 }
 
 func (r *DBTenant) IsExist(tgid TelegramID) (bool, error) {
-	log.Println("SELECT * FROM tenant WHERE idTenant = ?;", tgid)
+	logDB.Println("SELECT * FROM tenant WHERE idTenant = ?;", tgid)
 
 	rows, err := r.DB.Query("SELECT * FROM tenant WHERE idTenant = ?;", tgid)
 	if err != nil {
@@ -218,7 +219,7 @@ func (r *DBTenant) IsExist(tgid TelegramID) (bool, error) {
 }
 
 func (r *DBTenant) Insert(t Tenant) error {
-	log.Println("INSERT INTO tenant(idTenant) values(?)", t.IdTg)
+	logDB.Println("INSERT INTO tenant(idTenant) values(?)", t.IdTg)
 
 	_, err := r.DB.Exec("INSERT INTO tenant(idTenant) values(?)", t.IdTg)
 	if err != nil {
@@ -242,14 +243,14 @@ func (r *DBAdmin) Migrate() error {
         idAdmin INTEGER,
 		repairer TEXT
     );`
-	log.Println(query)
+	logDB.Println(query)
 
 	_, err := r.DB.Exec(query)
 	return err
 }
 
 func (r *DBAdmin) Insert(a Admin) error {
-	log.Println("INSERT INTO admin(idAdmin, repairer) values(?,?)", a.IdTgAdmin, a.Repairer)
+	logDB.Println("INSERT INTO admin(idAdmin, repairer) values(?,?)", a.IdTgAdmin, a.Repairer)
 
 	_, err := r.DB.Exec("INSERT INTO admin(idAdmin, repairer) values(?,?)", a.IdTgAdmin, a.Repairer)
 	if err != nil {
@@ -265,7 +266,7 @@ func (r *DBAdmin) Insert(a Admin) error {
 }
 
 func (r *DBAdmin) GetRepairer(tgid TelegramID) (string, error) {
-	log.Println("SELECT repairer FROM admin WHERE idAdmin = ?;", tgid)
+	logDB.Println("SELECT repairer FROM admin WHERE idAdmin = ?;", tgid)
 
 	row := r.DB.QueryRow("SELECT repairer FROM admin WHERE idAdmin = ?;", tgid)
 	var username string
@@ -273,7 +274,7 @@ func (r *DBAdmin) GetRepairer(tgid TelegramID) (string, error) {
 }
 
 func (r *DBAdmin) IsExist(tgid TelegramID) (bool, error) {
-	log.Println("SELECT * FROM admin WHERE idAdmin = ?;", tgid)
+	logDB.Println("SELECT * FROM admin WHERE idAdmin = ?;", tgid)
 
 	rows, err := r.DB.Query("SELECT * FROM admin WHERE idAdmin = ?;", tgid)
 	if err != nil {
@@ -284,7 +285,7 @@ func (r *DBAdmin) IsExist(tgid TelegramID) (bool, error) {
 }
 
 func (s DBAdmin) Update(a Admin) error {
-	log.Println("UPDATE admin SET repairer = ? WHERE idAdmin = ?", a.Repairer, a.IdTgAdmin)
+	logDB.Println("UPDATE admin SET repairer = ? WHERE idAdmin = ?", a.Repairer, a.IdTgAdmin)
 
 	result, err := s.DB.Exec("UPDATE admin SET repairer = ? WHERE idAdmin = ?", a.Repairer, a.IdTgAdmin)
 	if err != nil {
@@ -310,14 +311,14 @@ func (r *DBRoom) Migrate() error {
         idTenant INTEGER,
         number TEXT
     );`
-	log.Println(query)
+	logDB.Println(query)
 
 	_, err := r.DB.Exec(query)
 	return err
 }
 
 func (r *DBRoom) Insert(o Room) error {
-	log.Println("INSERT INTO room(idAdmin, idTenant, number) values(?,?,?)", o.IdTgAdmin, o.IdTgTenant, o.Number)
+	logDB.Println("INSERT INTO room(idAdmin, idTenant, number) values(?,?,?)", o.IdTgAdmin, o.IdTgTenant, o.Number)
 
 	_, err := r.DB.Exec("INSERT INTO room(idAdmin, idTenant, number) values(?,?,?)", o.IdTgAdmin, o.IdTgTenant, o.Number)
 	if err != nil {
@@ -333,7 +334,7 @@ func (r *DBRoom) Insert(o Room) error {
 }
 
 func (r *DBRoom) Delete(num Number) error {
-	log.Println("DELETE FROM room WHERE number = ?", num)
+	logDB.Println("DELETE FROM room WHERE number = ?", num)
 
 	res, err := r.DB.Exec("DELETE FROM room WHERE number = ?", num)
 	if err != nil {
@@ -353,7 +354,7 @@ func (r *DBRoom) Delete(num Number) error {
 }
 
 func (r *DBRoom) Read(tgid TelegramID) ([]Room, error) {
-	log.Println("SELECT * FROM room WHERE idAdmin = ?;", tgid)
+	logDB.Println("SELECT * FROM room WHERE idAdmin = ?;", tgid)
 
 	rows, err := r.DB.Query("SELECT * FROM room WHERE idAdmin = ?;", tgid)
 	if err != nil {
@@ -372,7 +373,7 @@ func (r *DBRoom) Read(tgid TelegramID) ([]Room, error) {
 }
 
 func (r *DBRoom) ReadTenants(num Number) ([]Room, error) {
-	log.Println("SELECT * FROM room WHERE number = ?;", num)
+	logDB.Println("SELECT * FROM room WHERE number = ?;", num)
 
 	rows, err := r.DB.Query("SELECT * FROM room WHERE number = ?;", num)
 	if err != nil {
@@ -391,7 +392,7 @@ func (r *DBRoom) ReadTenants(num Number) ([]Room, error) {
 }
 
 func (r *DBRoom) GetRoom(tgid TelegramID) (Number, error) {
-	log.Println("SELECT number FROM room WHERE idTenant = ?;", tgid)
+	logDB.Println("SELECT number FROM room WHERE idTenant = ?;", tgid)
 
 	row := r.DB.QueryRow("SELECT number FROM room WHERE idTenant = ?;", tgid)
 	var num Number
@@ -399,17 +400,19 @@ func (r *DBRoom) GetRoom(tgid TelegramID) (Number, error) {
 }
 
 func (r *DBRoom) GetAdmin(tgid TelegramID) (TelegramID, error) {
-	log.Println("SELECT idAdmin FROM room WHERE idTenant = ?;", tgid)
+	logDB.Println("SELECT idAdmin FROM room WHERE idTenant = ?;", tgid)
 
 	row := r.DB.QueryRow("SELECT idAdmin FROM room WHERE idTenant = ?;", tgid)
 	var id TelegramID
 	return id, row.Scan(&id)
 }
 
-func Init() (Tables, error) {
-	log.SetPrefix("database ")
+var logDB *log.Logger
 
-	db, err := sql.Open("sqlite3", ".sqlite/stage.db")
+func Init() (Tables, error) {
+	logDB = log.New(os.Stderr, "[SQLITE] ", log.LstdFlags|log.Lmsgprefix)
+
+	db, err := sql.Open("sqlite3", "stage.db")
 	if err != nil {
 		return Tables{}, err
 	}

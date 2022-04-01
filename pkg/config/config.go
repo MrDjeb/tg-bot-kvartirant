@@ -1,8 +1,7 @@
 package config
 
 import (
-	"os"
-
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
@@ -156,9 +155,9 @@ func unmarshal(cfg *Config) error {
 }
 
 func fromEnv(cfg *Config) error {
-	os.Setenv("TG_TOKEN", "5248866738:AAFDQ7Ops9B0QvLjPtPdzA4uEJ5zxT8ckK0")
-	os.Setenv("ACCESS_SECRET", "123")
-	os.Setenv("GODMODE_SECRET", "123")
+	if err := godotenv.Load(); err != nil {
+		return err
+	}
 
 	if err := viper.BindEnv("tg_token"); err != nil {
 		return err

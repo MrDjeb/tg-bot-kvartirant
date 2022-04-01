@@ -109,7 +109,7 @@ func (h *UnknownHandler) Message(u *tg.Update) error {
 type TenantHandler struct{ HandlerResponse }
 
 func (h *TenantHandler) New() {
-	b := keyboard.NewButtons().Tenant
+	b := keyboard.NewButtons(tgBot.Text).Tenant
 	t := tgBot.Text.Tenant
 	h.Cmd = map[string]CommandResponser{
 		tgBot.Text.CommonCommand.Start:   &TenantStart{But: keyboard.MakeKeyboard([]string{t.Water1, t.Receipt1}, []string{t.Report1})},
@@ -186,7 +186,7 @@ func (h *TenantHandler) Message(u *tg.Update) error {
 type AdminHandler struct{ HandlerResponse }
 
 func (h *AdminHandler) New() {
-	B := keyboard.NewButtons().Admin
+	B := keyboard.NewButtons(tgBot.Text).Admin
 	TC := tgBot.Text.CommonCommand
 	TA := tgBot.Text.Admin
 	h.Cmd = map[string]CommandResponser{
