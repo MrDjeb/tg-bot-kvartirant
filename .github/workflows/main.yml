@@ -41,17 +41,21 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }} 
           envs: REGISTRY, IMAGE_NAME, CONTAINER_NAME, GITHUB_SHA
           script: |
-            # Log in to Yandex Cloud Container Registry with OAuth token
-            echo ${{ secrets.YANDEXCLOUD_OAUTH_TOKEN }} | docker login --username oauth --password-stdin cr.yandex
-            # Stop running containers
-            # Remove old containers
-            docker ps -q --filter "name=$(echo $CONTAINER_NAME)" | grep -q . && docker stop $(echo $CONTAINER_NAME) && docker rm -fv $(echo $CONTAINER_NAME)
-
             # Set env variables
             export TG_TOKEN=${{ secrets.TG_TOKEN }}
             export ACCESS_SECRET=${{ secrets.ACCESS_SECRET }}
             export GODMODE_SECRET=${{ secrets.GODMODE_SECRET }}
 
+            # Log in to Yandex Cloud Container Registry with OAuth token
+            echo ${{ secrets.YANDEXCLOUD_OAUTH_TOKEN }} | docker login --username oauth --password-stdin cr.yandex
+
+            # Stop running containers & Remove old containers
+            docker ps -q --filter "name=$(echo $CONTAINER_NAME)" | grep -q . && \
+            docker stop $(echo $CONTAINER_NAME) && \
+            docker rm -fv $(echo $CONTAINER_NAME)
+
+            # Pull image from Yandex Cloud Container Registry
+            docker pull cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
             # Run a new container from a new image
             docker run -e TG_TOKEN -e ACCESS_SECRET -e GODMODE_SECRET -d \
             --restart always \
