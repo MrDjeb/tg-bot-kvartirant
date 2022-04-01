@@ -41,7 +41,6 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }} 
           envs: REGISTRY, IMAGE_NAME, CONTAINER_NAME, GITHUB_SHA
           script: |
-            sudo su
             # Log in to Yandex Cloud Container Registry with OAuth token
             echo ${{ secrets.YANDEXCLOUD_OAUTH_TOKEN }} | docker login --username oauth --password-stdin cr.yandex
             # Stop running containers
