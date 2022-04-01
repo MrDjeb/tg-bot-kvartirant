@@ -175,7 +175,7 @@ func (b *Cold_w2) HandleInput(u *tg.Update) error {
 	}
 
 	if isExist {
-		if err := tgBot.DB.Scorer.UpdateHot_w(num, scoreDB, dateDB); err != nil {
+		if err := tgBot.DB.Scorer.UpdateCold_w(num, scoreDB, dateDB); err != nil {
 			return err
 		}
 		if err := tgBot.API.SendText(u, "Успешно обновлено у текущей даты!"); err != nil {
