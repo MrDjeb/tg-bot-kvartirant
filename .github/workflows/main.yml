@@ -9,6 +9,7 @@ env:
   REGISTRY: "crpp6o1a47k42ls7uslj"
   IMAGE_NAME: "tg-bot-kvartirant"
   CONTAINER_NAME: "kvartirant"
+  IMAGE_TAG: $(git rev-parse --short "$GITHUB_SHA")
 
 jobs:
   build_and_push:
@@ -19,13 +20,13 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Build container image
-        run: docker build -t cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7) .
+        run: docker build -t cr.yandex/$REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
 
       - name: Log in to Yandex Cloud Container Registry with OAuth token
         run: echo ${{ secrets.YANDEXCLOUD_OAUTH_TOKEN }} | docker login --username oauth --password-stdin cr.yandex
 
       - name: Push image to Yandex Cloud Container Registry
-        run: docker push cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
+        run: docker push cr.yandex/$REGISTRY/$IMAGE_NAME:$IMAGE_TAG
 
   deploy:
     runs-on: ubuntu-latest
@@ -50,16 +51,13 @@ jobs:
             echo ${{ secrets.YANDEXCLOUD_OAUTH_TOKEN }} | docker login --username oauth --password-stdin cr.yandex
 
             # Stop running containers & Remove old containers
-            docker ps -q --filter "name=$(echo $CONTAINER_NAME)" | grep -q . && \
-            docker stop $(echo $CONTAINER_NAME) && \
-            docker rm -fv $(echo $CONTAINER_NAME)
+            docker ps -q --filter "name=$CONTAINER_NAME" | grep -q . && \
+            docker stop $CONTAINER_NAME && \
+            docker rm -fv $CONTAINER_NAME
 
             # Pull image from Yandex Cloud Container Registry
-            docker pull cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
+            docker pull cr.yandex/$REGISTRY/$IMAGE_NAME:$IMAGE_TAG
             # Run a new container from a new image
-            docker run -e TG_TOKEN -e ACCESS_SECRET -e GODMODE_SECRET -d \
-            -v kvartirant-db:/root \
-            --restart always \
-            --publish 80:80 \
-            --name $(echo $CONTAINER_NAME) \
-            cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
+            docker run -e TG_TOKEN -e ACCESS_SECRET -e GODMODE_SECRET -d -v kvartirant-db:/root \
+            --restart always --publish 80:80 --name $CONTAINER_NAME \
+            cr.yandex/$REGISTRY/$IMAGE_NAME:$IMAGE_TAG
