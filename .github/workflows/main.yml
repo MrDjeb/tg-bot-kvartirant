@@ -16,7 +16,10 @@ jobs:
 
     steps:
       - name: Checkout master
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      - run: git checkout HEAD
 
       - name: Build container image
         run: docker build -t cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7) .
