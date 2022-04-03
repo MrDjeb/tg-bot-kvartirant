@@ -11,3 +11,6 @@ build-image:
 
 start-container:
 	docker run --env-file .env -p 80:80 mrdjeb/tg-bot-kvartirant:0.1
+
+push:
+	go mod tidy | git add . | git commit | git push

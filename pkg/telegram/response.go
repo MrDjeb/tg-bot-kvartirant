@@ -390,7 +390,7 @@ type Rooms1 struct {
 }
 
 func (r *Rooms1) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "🏠Список комнат⋮ ")
+	msg := tg.NewMessage(u.FromChat().ID, "🏠 Список комнат⋮ ")
 
 	numbers, err := getRooms(u.FromChat().ID)
 	if err != nil {
