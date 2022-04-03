@@ -9,7 +9,7 @@ env:
   REGISTRY: "crpp6o1a47k42ls7uslj"
   IMAGE_NAME: "tg-bot-kvartirant"
   CONTAINER_NAME: "kvartirant"
-  IMAGE_TAG: $(echo $(git rev-parse --short "$GITHUB_SHA"))
+  IMAGE_TAG: $GITHUB_SHA | head -c7
 
 jobs:
   build_and_push:
