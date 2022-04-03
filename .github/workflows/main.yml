@@ -9,7 +9,7 @@ env:
   REGISTRY: "crpp6o1a47k42ls7uslj"
   IMAGE_NAME: "tg-bot-kvartirant"
   CONTAINER_NAME: "kvartirant"
-  IMAGE_TAG: $(git rev-parse --short "$GITHUB_SHA")
+  IMAGE_TAG: $(echo $(git rev-parse --short "$GITHUB_SHA"))
 
 jobs:
   build_and_push:
@@ -40,7 +40,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSHKEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }} 
-          envs: REGISTRY, IMAGE_NAME, CONTAINER_NAME, GITHUB_SHA
+          envs: REGISTRY, IMAGE_NAME, CONTAINER_NAME, IMAGE_TAG, 
           script: |
             # Set env variables
             export TG_TOKEN=${{ secrets.TG_TOKEN }}
