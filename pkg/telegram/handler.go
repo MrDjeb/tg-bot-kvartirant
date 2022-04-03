@@ -74,6 +74,8 @@ type InbuttonResponser interface {
 
 type BackResponser func(u *tg.Update) error
 
+///////////////////////////////////////////////////
+
 type UnknownHandler struct{ HandlerResponse }
 
 func (h *UnknownHandler) New() {

@@ -2,6 +2,11 @@ package telegram
 
 import (
 	"errors"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/cache"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/config"
@@ -10,6 +15,10 @@ import (
 )
 
 var tgBot *Bot
+
+type User struct {
+	Handler
+}
 
 type Bot struct {
 	API   API
@@ -65,11 +74,19 @@ func (a API) AnsCallback(u *tg.Update, text string) error {
 	return nil
 }
 
-type User struct {
-	Handler
+type logBot struct {
+	std *log.Logger
+}
+
+func (l *logBot) Println(v ...interface{}) { l.std.Output(2, DecodeUTF16(fmt.Sprintln(v...))) }
+
+func (l *logBot) Printf(format string, v ...interface{}) {
+	l.std.Output(2, DecodeUTF16(fmt.Sprintf(format, v...)))
 }
 
 func (b *Bot) Start() error {
+	tg.SetLogger(&logBot{log.New(os.Stderr, "[API] ", log.LstdFlags|log.Lmsgprefix)})
+
 	u := tg.NewUpdate(0)
 	u.Timeout = 60
 	updates := b.API.GetUpdatesChan(u)
@@ -129,4 +146,16 @@ func (b *Bot) FromWhom(u *tg.Update) (User, error) {
 	default:
 		return tgBot.Unknown, err
 	}
+}
+
+func DecodeUTF16(str string) string {
+	str = strings.Replace(str, "\"", "＂", -1)
+	str = strings.Replace(str, "\n", "", -1)
+
+	s, err := strconv.Unquote("\"" + str + "\"")
+	if err != nil {
+		log.Println(err)
+	}
+
+	return s
 }

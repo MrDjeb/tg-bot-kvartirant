@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/cache"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/config"
@@ -15,7 +14,6 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmsgprefix)
 	log.SetPrefix("[ERROR] ")
-	tg.SetLogger(log.New(os.Stderr, "[API] ", log.LstdFlags|log.Lmsgprefix))
 
 	cfg, err := config.Init()
 	if err != nil {
