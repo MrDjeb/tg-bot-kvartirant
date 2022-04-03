@@ -87,6 +87,7 @@ func (l *logBot) Printf(format string, v ...interface{}) {
 func (b *Bot) Start() error {
 	tg.SetLogger(&logBot{log.New(os.Stderr, "[API] ", log.LstdFlags|log.Lmsgprefix)})
 
+	log.Println("Initialization completed!")
 	u := tg.NewUpdate(0)
 	u.Timeout = 60
 	updates := b.API.GetUpdatesChan(u)

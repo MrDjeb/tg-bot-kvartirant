@@ -13,7 +13,6 @@ FROM alpine:latest
 
 WORKDIR /root/
 
-COPY --from=0 /github.com/MrDjeb/tg-bot-kvartirant/.bin .
 COPY --from=0 /github.com/MrDjeb/tg-bot-kvartirant/configs configs/
 
 EXPOSE 80
