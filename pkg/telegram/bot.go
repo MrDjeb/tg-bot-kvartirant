@@ -78,7 +78,9 @@ type logBot struct {
 	std *log.Logger
 }
 
-func (l *logBot) Println(v ...interface{}) { l.std.Output(2, DecodeUTF16(fmt.Sprintln(v...))) }
+func (l *logBot) Println(v ...interface{}) {
+	l.std.Output(2, DecodeUTF16(fmt.Sprintln(v...)))
+}
 
 func (l *logBot) Printf(format string, v ...interface{}) {
 	l.std.Output(2, DecodeUTF16(fmt.Sprintf(format, v...)))
@@ -150,12 +152,38 @@ func (b *Bot) FromWhom(u *tg.Update) (User, error) {
 }
 
 func DecodeUTF16(str string) string {
+	/*s := ""
+	str = strings.Replace(str, "\n", " ", -1)
+	for i := 0; i < len(str)-1; i++ {
+		if str[i] == '\\' && str[i+1] == 'u' {
+			r, err := strconv.Unquote("'" + str[i:i+6] + "'")
+			//fmt.Println("'"+str[i:i+6]+"'", r)
+			if err == nil {
+				s += r
+				i += 5
+			} else {
+				s += string(str[i])
+			}
+		} else {
+			s += string(str[i])
+		}
+	}
+	s += string(str[len(str)-1])*/
+
+	//str = strings.Replace(str, "\a", "", -1)
+	//str = strings.Replace(str, "\b", "", -1)
+	//str = strings.Replace(str, "\t", "", -1)
+	str = strings.Replace(str, "\n", " ", -1)
+	//str = strings.Replace(str, "\f", "", -1)
+	//str = strings.Replace(str, "\r", "", -1)
+	//str = strings.Replace(str, "\v", "", -1)
+	//str = strings.Replace(str, "'", "", -1)
 	str = strings.Replace(str, "\"", "＂", -1)
-	str = strings.Replace(str, "\n", "", -1)
+	//str = strings.Replace(str, "\\", "\\\\", -1)
 
 	s, err := strconv.Unquote("\"" + str + "\"")
 	if err != nil {
-		log.Println(err)
+		return str
 	}
 
 	return s
