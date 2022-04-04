@@ -412,7 +412,11 @@ var logDB *log.Logger
 func Init() (Tables, error) {
 	logDB = log.New(os.Stderr, "[SQLITE] ", log.LstdFlags|log.Lmsgprefix)
 
-	db, err := sql.Open("sqlite3", "stage.db")
+	err := os.MkdirAll("./sqlite", os.ModePerm)
+	if err != nil {
+		return Tables{}, err
+	}
+	db, err := sql.Open("sqlite3", "./sqlite/stage.db")
 	if err != nil {
 		return Tables{}, err
 	}

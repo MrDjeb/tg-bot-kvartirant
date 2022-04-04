@@ -60,6 +60,6 @@ jobs:
             # Pull image from Yandex Cloud Container Registry
             docker pull cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
             # Run a new container from a new image
-            docker run -e TG_TOKEN -e ACCESS_SECRET -e GODMODE_SECRET -d -v kvartirant-db:/root \
+            docker run -e TG_TOKEN -e ACCESS_SECRET -e GODMODE_SECRET -d -v kvartirant-db:/root/sqlite \
             --restart always --publish 80:80 --name $CONTAINER_NAME \
             cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
