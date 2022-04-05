@@ -276,7 +276,7 @@ func (r *Month2) Callback(u *tg.Update) error {
 	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введите номер месяца -- число от 1 до 12."); err != nil {
+	if err := tgBot.API.SendText(u, "Введите номер месяца, за который была произведена оплата ‒ число от 1 до 12."); err != nil {
 		return err
 	}
 
@@ -300,7 +300,7 @@ func (r *Amount2) Callback(u *tg.Update) error {
 	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введиту сумму в рублях, которую вы оплатили. К примеру, 4500"); err != nil {
+	if err := tgBot.API.SendText(u, "Введите сумму в рублях, которую вы оплатили. К примеру, 4500"); err != nil {
 		return err
 	}
 
@@ -324,7 +324,7 @@ func (r *Receipt2) Callback(u *tg.Update) error {
 	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Пришлите скрин квитанции."); err != nil {
+	if err := tgBot.API.SendText(u, "Прикрепите изображение квитанции, подтверждающее факт оплаты."); err != nil {
 		return err
 	}
 
@@ -398,7 +398,7 @@ func (r *Rooms1) Action(u *tg.Update) error {
 	}
 
 	if len(numbers) == 0 {
-		return tgBot.API.SendText(u, "Список комнат пуст.")
+		return tgBot.API.SendText(u, "⦰Список комнат пуст.")
 	}
 
 	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
@@ -579,7 +579,7 @@ func (r *RemoveRoom3) Action(u *tg.Update) error {
 	}
 
 	if len(numbers) == 0 {
-		return tgBot.API.SendText(u, "Список комнат пуст.")
+		return tgBot.API.SendText(u, "⦰Список комнат пуст.")
 	}
 
 	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
@@ -705,6 +705,8 @@ func (r *ShowScorer33) Action(u *tg.Update) error {
 
 	msg := tg.NewMessage(u.FromChat().ID, "🗝 **〈"+num+"〉**  ♨/💧\n"+getScorerTable(&scorers, flag))
 	msg.ParseMode = tg.ModeMarkdown
+	//fmt.Println("MessagwEntity: ", msg.Entities)
+	//msg.Entities = append(msg.Entities, tg.MessageEntity{Type: "code"})
 	if flag {
 		msg.ReplyMarkup = r.But
 	}
@@ -885,10 +887,10 @@ func getScorerTable(scorers *[]database.Scorer, flag bool) string {
 	//table.SetTablePadding("*")
 	//table.SetBorder(false)
 	//table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	table.SetRowSeparator("━")
-	table.SetCenterSeparator("╋")
-	table.SetColumnSeparator("┃") //https://unicode-table.com/ru/blocks/box-drawing/
-	table.SetHeader([]string{"hot water", "cold water", "date"})
+	//table.SetRowSeparator("-")
+	//table.SetCenterSeparator("+")
+	//table.SetColumnSeparator("|") //https://unicode-table.com/ru/blocks/box-drawing/
+	table.SetHeader([]string{"hot", "cold", "date"})
 	//table.SetCaption(true, num)
 	for _, score := range *scorers {
 		row := []string{strconv.FormatFloat(float64(score.Hot_w)/100, 'f', -1, 64), strconv.FormatFloat(float64(score.Cold_w)/100, 'f', -1, 64), string(score.Date)}
@@ -904,10 +906,22 @@ func getScorerTable(scorers *[]database.Scorer, flag bool) string {
 func getPaymentTable(payments *[]database.Payment) string {
 	paymentTable := &strings.Builder{}
 	table := tablewriter.NewWriter(paymentTable)
-	table.SetRowSeparator("━")
-	table.SetCenterSeparator("╋")
-	table.SetColumnSeparator("┃")
-	table.SetHeader([]string{"date", "amount", "pay moment"})
+	//table.SetRowSeparator("━")
+	//table.SetCenterSeparator("╋")
+	//table.SetColumnSeparator("┃")
+
+	table.SetAutoWrapText(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetHeaderAlignment(tablewriter.ALIGN_CENTER)
+	table.SetAlignment(tablewriter.ALIGN_CENTER)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetTablePadding("\t") // pad with tabs
+	table.SetNoWhiteSpace(true)
+	table.SetHeader([]string{"date", "amount", "moment"})
 	for _, payment := range *payments {
 		row := []string{string(payment.Date), strconv.FormatUint(uint64(payment.Amount), 10), string(payment.PayMoment)}
 		table.Append(row)

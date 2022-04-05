@@ -3,12 +3,12 @@ text:
     tenant:
       water1: "Вода"
       water:
-        hot_w2: "Внести горячую воду"
-        cold_w2: "Внести холодную воду"
+        hot_w2: "Горячая вода"
+        cold_w2: "Холодная вода"
       receipt1: "Квитанция"
       receipt:
         month2: "Месяц: 1-12"
-        amount2: "Сумма оплаты"
+        amount2: "Сумма RUB"
         receipt2: "Скрин оплаты"
       report1: "Сообщения о поломке"
     admin:

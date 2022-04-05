@@ -280,14 +280,7 @@ func (h *AdminHandler) Command(u *tg.Update) error {
 }
 
 func (h *AdminHandler) Photo(u *tg.Update) error {
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok && st.Is == tgBot.Text.Buttons.Tenant.Receipt1 {
-		return h.Inp[tgBot.Text.Tenant.Receipt.Receipt2].HandleInput(u)
-	} else if ok {
-		return tgBot.API.SendText(u, "Сейчас мне не нужно фото.")
-	} else {
-		return tgBot.API.SendText(u, tgBot.Text.Response.Unknown_ms)
-	}
+	return tgBot.API.SendText(u, tgBot.Text.Response.Unknown_ms)
 }
 
 func (h *AdminHandler) Message(u *tg.Update) error {

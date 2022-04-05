@@ -109,7 +109,7 @@ func (r *Hot_w2) HandleInput(u *tg.Update) error {
 		if err := tgBot.DB.Scorer.UpdateHot_w(num, scoreDB, dateDB); err != nil {
 			return err
 		}
-		if err := tgBot.API.SendText(u, "Успешно обновлено у текущей даты!"); err != nil {
+		if err := tgBot.API.SendText(u, fmt.Sprintf("Показания горячей воды в 〈%s〉 за сегодня успешно изменены.", num)); err != nil {
 			return err
 		}
 		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
@@ -178,7 +178,7 @@ func (b *Cold_w2) HandleInput(u *tg.Update) error {
 		if err := tgBot.DB.Scorer.UpdateCold_w(num, scoreDB, dateDB); err != nil {
 			return err
 		}
-		if err := tgBot.API.SendText(u, "Успешно обновлено у текущей даты!"); err != nil {
+		if err := tgBot.API.SendText(u, fmt.Sprintf("Показания холодной воды в 〈%s〉 за сегодня успешно изменены.", num)); err != nil {
 			return err
 		}
 		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
