@@ -22,12 +22,12 @@ func (r *UnknownStart) Action(u *tg.Update) error {
 
 	byteToken, err := base64.StdEncoding.DecodeString(u.Message.CommandArguments())
 	if err != nil { //error broke
-		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк.")
+		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк. (err1)")
 	}
 	token := string(byteToken)
 	idAdmin, err := strconv.ParseInt(token[32:], 10, 64)
 	if err != nil { //error broke
-		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк.")
+		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк. (err2)")
 	}
 
 	d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(idAdmin)
@@ -36,7 +36,7 @@ func (r *UnknownStart) Action(u *tg.Update) error {
 	}
 	number, ok := d.AddingRooms[token]
 	if !ok {
-		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк.")
+		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк. (err3)")
 	}
 	delete(d.AddingRooms, token)
 	tgBot.Admin.Cache.Put(idAdmin, d)
@@ -212,7 +212,19 @@ func (r *Report1) Action(u *tg.Update) error {
 	if err != nil {
 		return err
 	}
-	return tgBot.API.SendText(u, fmt.Sprintf("По техническим вопросам пишите в личные сообщения %s", username))
+
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf("По техническим вопросам пишите в личные сообщения [%s](tg://user?username=%s)", username, username))
+	msg.ParseMode = tg.ModeMarkdown
+	if _, err = tgBot.API.Send(msg); err != nil {
+		return err
+	}
+
+	msg = tg.NewMessage(u.FromChat().ID, fmt.Sprintf("@%s", username))
+	msg.Entities = append(msg.Entities, tg.MessageEntity{Type: "mention"})
+	if _, err = tgBot.API.Send(msg); err != nil {
+		return err
+	}
+	return nil
 }
 
 type Hot_w2 struct {
@@ -640,6 +652,9 @@ func (r *ConfirmRemove5) Action(u *tg.Update) error {
 	if err := tgBot.DB.Room.Delete(database.Number(num)); err != nil {
 		return err
 	}
+	if err := tgBot.DB.Tenant.Delete(database.Number(num)); err != nil {
+		return err
+	}
 
 	_, err := tgBot.API.Send(msg)
 	return err
@@ -834,11 +849,7 @@ func (r *ShowTenants3) Action(u *tg.Update) error {
 		if err != nil {
 			return nil
 		}
-		if member.User.UserName != "" {
-			usernames += "@" + member.User.UserName + " " + member.User.FirstName + "\n"
-		} else {
-			usernames += member.User.FirstName + "\n"
-		}
+		usernames += fmt.Sprintf("[%s](tg://user?id=%d)", member.User.FirstName, member.User.ID)
 	}
 	msg := tg.NewMessage(u.FromChat().ID, usernames)
 	msg.ParseMode = tg.ModeMarkdown

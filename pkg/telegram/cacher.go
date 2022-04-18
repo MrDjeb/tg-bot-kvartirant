@@ -38,19 +38,19 @@ type Cacher interface {
 }
 
 type TenantCacher struct {
-	Get func(key int64) (val *TenantData, ok bool)
+	Get func(key int64) (val TenantData, ok bool)
 }
 
 func (h *TenantCacher) New() {
-	h.Get = func(key int64) (val *TenantData, ok bool) {
+	h.Get = func(key int64) (val TenantData, ok bool) {
 		switch value, ok := tgBot.Cache.Get(cache.KeyT(key)); value.(type) {
 		case nil:
-			return &TenantData{}, ok
-		case *TenantData:
-			return value.(*TenantData), ok
+			return TenantData{}, ok
+		case TenantData:
+			return value.(TenantData), ok
 		default:
-			log.Printf("Getting wrong value type by id: %d (need *TenantData)\n", key)
-			return &TenantData{}, ok
+			log.Printf("Getting wrong value type by id: %d (need TenantData)\n", key)
+			return TenantData{}, ok
 		}
 	}
 }
@@ -69,7 +69,7 @@ func (h *AdminCacher) New() {
 		case AdminData:
 			return value.(AdminData), ok
 		default:
-			log.Printf("Getting wrong value type by id: %d (need *AdminData)\n", key)
+			log.Printf("Getting wrong value type by id: %d (need AdminData)\n", key)
 			return AdminData{}, ok
 		}
 	}

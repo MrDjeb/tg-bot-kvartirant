@@ -55,13 +55,8 @@ func (r *DBScorer) Insert(sc Scorer) error {
 
 func (r *DBScorer) Delete(num Number) error {
 	logDB.Println("DELETE FROM scorer WHERE number = ?", num)
-
 	_, err := r.DB.Exec("DELETE FROM scorer WHERE number = ?", num)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (s DBScorer) IsExistDay(num Number, date Date) (bool, error) {
@@ -166,13 +161,8 @@ func (r *DBPayment) Insert(pa Payment) error {
 
 func (r *DBPayment) Delete(num Number) error {
 	logDB.Println("DELETE FROM payment WHERE number = ?", num)
-
 	_, err := r.DB.Exec("DELETE FROM payment WHERE number = ?", num)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (r *DBPayment) Read(num Number) ([]Payment, error) {
@@ -232,6 +222,12 @@ func (r *DBTenant) Insert(t Tenant) error {
 		return err
 	}
 	return nil
+}
+
+func (r *DBTenant) Delete(num Number) error {
+	logDB.Println("DELETE FROM tenant WHERE number = ?", num)
+	_, err := r.DB.Exec("DELETE FROM tenant WHERE number = ?", num)
+	return err
 }
 
 type DBAdmin struct{ DB *sql.DB }

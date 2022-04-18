@@ -119,7 +119,7 @@ func (r *Hot_w2) HandleInput(u *tg.Update) error {
 	} else {
 		d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
 		if !ok {
-			return nil
+			return tgBot.API.SendText(u, "Пожалуйства, начните операцию ввода заного")
 		}
 
 		d.ScoreHot_w = scoreDB
@@ -193,7 +193,7 @@ func (b *Cold_w2) HandleInput(u *tg.Update) error {
 	} else {
 		d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
 		if !ok {
-			return nil
+			return tgBot.API.SendText(u, "Пожалуйства, начните операцию ввода заного")
 		}
 
 		d.ScoreCold_w = scoreDB
@@ -249,7 +249,7 @@ func (r *Month2) HandleInput(u *tg.Update) error {
 
 	d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
 	if !ok {
-		return nil
+		return tgBot.API.SendText(u, "Пожалуйства, начните операцию ввода заного")
 	}
 
 	d.PaymentMonth = uint8(month)
@@ -305,7 +305,7 @@ func (r *Amount2) HandleInput(u *tg.Update) error {
 
 	d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
 	if !ok {
-		return nil
+		return tgBot.API.SendText(u, "Пожалуйства, начните операцию ввода заного")
 	}
 
 	d.PaymentAmount = database.AmountRUB(amount)
@@ -370,7 +370,7 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 
 	d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
 	if !ok {
-		return nil
+		return tgBot.API.SendText(u, "Пожалуйства, начните операцию ввода заного")
 	}
 
 	d.PaymentReceipt = database.Photo(blob)
@@ -444,7 +444,7 @@ func (r *AddRoom3) HandleInput(u *tg.Update) error {
 
 	d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID)
 	if !ok {
-		return nil
+		return tgBot.API.SendText(u, "Пожалуйства, начните операцию ввода заного")
 	}
 
 	if d.AddingRooms == nil {
