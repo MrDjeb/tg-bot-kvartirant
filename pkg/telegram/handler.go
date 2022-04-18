@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/MrDjeb/tg-bot-kvartirant/pkg/cache"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/database"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/telegram/keyboard"
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -34,11 +33,6 @@ type Handler interface {
 	Photo(u *tg.Update) error
 	Message(u *tg.Update) error
 	New()
-}
-
-func NewUser(h Handler) User {
-	h.New()
-	return User{h}
 }
 
 type HandlerResponse struct {
@@ -91,8 +85,7 @@ func (h *UnknownHandler) Callback(u *tg.Update) error {
 }
 
 func (h *UnknownHandler) Command(u *tg.Update) error {
-	cmd, ok := h.Cmd[u.Message.Command()]
-	if ok {
+	if cmd, ok := h.Cmd[u.Message.Command()]; ok {
 		return cmd.Action(u)
 	}
 	return h.Cmd[tgBot.Text.CommonCommand.Unknown].Action(u)
@@ -140,24 +133,21 @@ func (h *TenantHandler) New() {
 }
 
 func (h *TenantHandler) Callback(u *tg.Update) error {
-	inp, ok := h.Inp[u.CallbackQuery.Data]
-	if ok {
+	if inp, ok := h.Inp[u.CallbackQuery.Data]; ok {
 		return inp.Callback(u)
 	}
 	return h.Mes[tgBot.Text.CommonCommand.Unknown].Action(u)
 }
 
 func (h *TenantHandler) Command(u *tg.Update) error {
-	cmd, ok := h.Cmd[u.Message.Command()]
-	if ok {
+	if cmd, ok := h.Cmd[u.Message.Command()]; ok {
 		return cmd.Action(u)
 	}
 	return h.Cmd[tgBot.Text.CommonCommand.Unknown].Action(u)
 }
 
 func (h *TenantHandler) Photo(u *tg.Update) error {
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok && st.Is == tgBot.Text.Buttons.Tenant.Receipt.Receipt2 {
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok && d.Is == tgBot.Text.Buttons.Tenant.Receipt.Receipt2 {
 		return h.Inp[tgBot.Text.Tenant.Receipt.Receipt2].HandleInput(u)
 	} else if ok {
 		return tgBot.API.SendText(u, "Сейчас мне не нужно фото.")
@@ -167,22 +157,18 @@ func (h *TenantHandler) Photo(u *tg.Update) error {
 }
 
 func (h *TenantHandler) Message(u *tg.Update) error {
-	mes, ok := h.Mes[u.Message.Text]
-	if ok {
+	if mes, ok := h.Mes[u.Message.Text]; ok {
 		return mes.Action(u)
 	}
-
-	but, ok := h.But[u.Message.Text]
-	if ok {
+	if but, ok := h.But[u.Message.Text]; ok {
 		return but.Action(u)
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		if st.Is == tgBot.Text.Tenant.Receipt.Receipt2 {
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+		if d.Is == tgBot.Text.Tenant.Receipt.Receipt2 {
 			return tgBot.API.SendText(u, "Пришлите фото.")
 		}
-		return h.Inp[st.Is].HandleInput(u)
+		return h.Inp[d.Is].HandleInput(u)
 	}
 	return h.Mes[tgBot.Text.CommonCommand.Unknown].Action(u)
 }
@@ -232,37 +218,29 @@ func (h *AdminHandler) New() {
 }
 
 func (h *AdminHandler) Callback(u *tg.Update) error {
-	bck, ok := h.Bck[u.CallbackQuery.Data]
-	if ok {
+	if bck, ok := h.Bck[u.CallbackQuery.Data]; ok {
 		return bck(u)
 	}
-
-	inp, ok := h.Inp[u.CallbackQuery.Data]
-	if ok {
+	if inp, ok := h.Inp[u.CallbackQuery.Data]; ok {
 		return inp.Callback(u)
 	}
-
-	inb, ok := h.Inb[u.CallbackQuery.Data]
-	if ok {
+	if inb, ok := h.Inb[u.CallbackQuery.Data]; ok {
 		return inb.Callback(u)
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		num := u.CallbackQuery.Data[strings.Index(u.CallbackQuery.Data, keyboard.DEL)+1:]
 		if isRoom(num, d.Rooms) {
 			prefix := u.CallbackQuery.Data[:strings.Index(u.CallbackQuery.Data, keyboard.DEL)]
 
-			inb, ok := h.Inb[prefix]
-			if ok {
+			if inb, ok := h.Inb[prefix]; ok {
 				switch prefix {
 				case tgBot.Text.Admin.Room2:
 					d.Number = num
 				case tgBot.Text.Admin.Settings.Edit.Removing4:
 					d.NumberDel = num
 				}
-				tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: st.Is, Data: d})
+				tgBot.Admin.Cache.Put(u.FromChat().ID, d)
 				return inb.Callback(u)
 			}
 		}
@@ -272,8 +250,7 @@ func (h *AdminHandler) Callback(u *tg.Update) error {
 }
 
 func (h *AdminHandler) Command(u *tg.Update) error {
-	cmd, ok := h.Cmd[u.Message.Command()]
-	if ok {
+	if cmd, ok := h.Cmd[u.Message.Command()]; ok {
 		return cmd.Action(u)
 	}
 	return h.Cmd[tgBot.Text.CommonCommand.Unknown].Action(u)
@@ -284,20 +261,17 @@ func (h *AdminHandler) Photo(u *tg.Update) error {
 }
 
 func (h *AdminHandler) Message(u *tg.Update) error {
-	mes, ok := h.Mes[u.Message.Text]
-	if ok {
+
+	if mes, ok := h.Mes[u.Message.Text]; ok {
 		return mes.Action(u)
 	}
 
-	but, ok := h.But[u.Message.Text]
-	if ok {
+	if but, ok := h.But[u.Message.Text]; ok {
 		return but.Action(u)
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok && st.Is != "" {
-		inp, ok := h.Inp[st.Is]
-		if ok {
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok && d.Is != "" {
+		if inp, ok := h.Inp[d.Is]; ok {
 			return inp.HandleInput(u)
 		}
 	}

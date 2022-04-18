@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MrDjeb/tg-bot-kvartirant/pkg/cache"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/database"
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -112,14 +111,17 @@ func (r *Hot_w2) HandleInput(u *tg.Update) error {
 		if err := tgBot.API.SendText(u, fmt.Sprintf("Показания горячей воды в 〈%s〉 за сегодня успешно изменены.", num)); err != nil {
 			return err
 		}
-		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+
+		if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+			d.Erase()
+			tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+		}
 	} else {
-		st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+		d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
 		if !ok {
 			return nil
 		}
 
-		d := st.Data.(cache.TenantData)
 		d.ScoreHot_w = scoreDB
 		d.Score[0] = true
 
@@ -137,9 +139,12 @@ func (r *Hot_w2) HandleInput(u *tg.Update) error {
 			if err := tgBot.API.SendText(u, "Счёт за воду успешно сохранен c параметрами: "+fmt.Sprintf("%s Hot m3 | %s Cold m3", strconv.FormatFloat(float64(score.Hot_w)/100, 'f', -1, 64), strconv.FormatFloat(float64(score.Cold_w)/100, 'f', -1, 64))); err != nil {
 				return err
 			}
-			tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+			if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+				d.Erase()
+				tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+			}
 		} else {
-			tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+			tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 			if err := tgBot.API.SendText(u, "Счёт за горячую воду внесён."); err != nil {
 				return err
 			}
@@ -181,14 +186,16 @@ func (b *Cold_w2) HandleInput(u *tg.Update) error {
 		if err := tgBot.API.SendText(u, fmt.Sprintf("Показания холодной воды в 〈%s〉 за сегодня успешно изменены.", num)); err != nil {
 			return err
 		}
-		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+		if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+			d.Erase()
+			tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+		}
 	} else {
-		st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+		d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
 		if !ok {
 			return nil
 		}
 
-		d := st.Data.(cache.TenantData)
 		d.ScoreCold_w = scoreDB
 		d.Score[1] = true
 
@@ -206,9 +213,12 @@ func (b *Cold_w2) HandleInput(u *tg.Update) error {
 			if err := tgBot.API.SendText(u, "Счёт за воду успешно сохранен c параметрами: "+fmt.Sprintf("%s Hot m3 | %s Cold m3", strconv.FormatFloat(float64(score.Hot_w)/100, 'f', -1, 64), strconv.FormatFloat(float64(score.Cold_w)/100, 'f', -1, 64))); err != nil {
 				return err
 			}
-			tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+			if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+				d.Erase()
+				tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+			}
 		} else {
-			tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+			tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 			if err := tgBot.API.SendText(u, "Счёт за холодную воду внесён."); err != nil {
 				return err
 			}
@@ -237,12 +247,11 @@ func (r *Month2) HandleInput(u *tg.Update) error {
 		return err
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
 	if !ok {
 		return nil
 	}
 
-	d := st.Data.(cache.TenantData)
 	d.PaymentMonth = uint8(month)
 	d.Payment[0] = true
 
@@ -261,9 +270,12 @@ func (r *Month2) HandleInput(u *tg.Update) error {
 		if err := tgBot.API.SendText(u, "Квитанция успешно сохранена c параметрами: "+fmt.Sprintf("%d ₽ | %s", payment.Amount, payment.Date)); err != nil {
 			return err
 		}
-		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+		if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+			d.Erase()
+			tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+		}
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 		if err := tgBot.API.SendText(u, "Месяц успешно добавлен."); err != nil {
 			return err
 		}
@@ -291,12 +303,11 @@ func (r *Amount2) HandleInput(u *tg.Update) error {
 		return err
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
 	if !ok {
 		return nil
 	}
 
-	d := st.Data.(cache.TenantData)
 	d.PaymentAmount = database.AmountRUB(amount)
 	d.Payment[1] = true
 
@@ -315,9 +326,12 @@ func (r *Amount2) HandleInput(u *tg.Update) error {
 		if err := tgBot.API.SendText(u, "Квитанция успешно сохранена c параметрами: "+fmt.Sprintf("%d ₽ | %s", payment.Amount, payment.Date)); err != nil {
 			return err
 		}
-		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+		if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+			d.Erase()
+			tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+		}
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 		if err := tgBot.API.SendText(u, "Сумма оплаты добавлена."); err != nil {
 			return err
 		}
@@ -354,12 +368,11 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 		return err
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
 	if !ok {
 		return nil
 	}
 
-	d := st.Data.(cache.TenantData)
 	d.PaymentReceipt = database.Photo(blob)
 	d.Payment[2] = true
 
@@ -378,9 +391,12 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 		if err := tgBot.API.SendText(u, "Квитанция успешно сохранена c параметрами: "+fmt.Sprintf("%d ₽ | %s", payment.Amount, payment.Date)); err != nil {
 			return err
 		}
-		tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+		if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+			d.Erase()
+			tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+		}
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 		if err := tgBot.API.SendText(u, "Скрин оплаты добавлен."); err != nil {
 			return err
 		}
@@ -392,7 +408,7 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 	return nil
 }
 
-//////////////////////////////////////////////////////////
+/////////////////////////////ADMIN/////////////////////////////
 
 func (b *Contacts2) HandleInput(u *tg.Update) error {
 
@@ -404,12 +420,9 @@ func (b *Contacts2) HandleInput(u *tg.Update) error {
 		return nil //error broken
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
-	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{})
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		d.Is = ""
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
 	}
 
 	tgBot.DB.Admin.Update(database.Admin{IdTgAdmin: database.TelegramID(u.FromChat().ID), Repairer: tidyStr})
@@ -429,16 +442,19 @@ func (r *AddRoom3) HandleInput(u *tg.Update) error {
 	}*/
 	dataToken := TokenFromNum(tidyStr, u.FromChat().ID)
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
+	d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID)
 	if !ok {
 		return nil
 	}
-	d := st.Data.(cache.AdminData)
+
 	if d.AddingRooms == nil {
 		d.AddingRooms = make(map[string]string)
 	}
 	d.AddingRooms[dataToken] = tidyStr
-	tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: d})
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		d.Is = ""
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+	}
 
 	link := fmt.Sprintf(DEEPLINK, tgBot.API.Self.UserName, base64.StdEncoding.EncodeToString([]byte(dataToken)))
 	if err := tgBot.API.SendText(u, fmt.Sprintf("Добавлено ожидание пользователя для квартиры под номером: %s\n%s", tidyStr, link)); err != nil {

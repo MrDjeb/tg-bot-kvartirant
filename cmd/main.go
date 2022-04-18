@@ -26,7 +26,7 @@ func main() {
 	}
 	defer db.Scorer.DB.Close()
 
-	cach, err := cache.NewCache(60 * 60 * 60)
+	cach, err := cache.NewCache(60 * 60)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -38,6 +38,7 @@ func main() {
 	}
 
 	botAPI.Debug = true
+	cache.Debug = true
 
 	tgBot := telegram.NewBot(botAPI, cfg.Text, db, cach)
 	if err := tgBot.Start(); err != nil {

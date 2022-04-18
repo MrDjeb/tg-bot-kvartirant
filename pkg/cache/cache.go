@@ -21,8 +21,13 @@ const (
 	DefaultmaxSize = (1 << 20) * 128 // 128Mb
 )
 
+var (
+	Debug = false
+	logC  = log.New(os.Stderr, "[CACHE] ", log.LstdFlags|log.Lmsgprefix)
+)
+
 type KeyT int64
-type ValueT State
+type ValueT interface{}
 
 type elem struct {
 	key      KeyT
@@ -91,6 +96,7 @@ func NewCache(param ...uint32) (*Cache, error) {
 
 	}
 	param = append(param, DefaultTTL, DefaultminSize, DefaultmaxSize)
+
 	c := &Cache{
 		table:         make(map[KeyT]*list.Element),
 		queue:         list.New(),
@@ -106,6 +112,14 @@ func NewCache(param ...uint32) (*Cache, error) {
 	}
 	c.closeCollapse.Add(1)
 	go c.collapse()
+
+	logC.Printf(`
+	Created new cache with params:
+		TTL: %d sec,
+		checkTTL: %d sec, 
+		minBytesize: %d Mb, 
+		maxBytesize: %d Mb
+		`, c.ttl, c.checkTTL, c.minSize/(1<<20), c.maxSize/(1<<20))
 	return c, nil
 }
 
@@ -125,39 +139,56 @@ func (c *Cache) Destroy() {
 }
 
 // Puts element: {key, value} to Cache or update value if key exist.
-func (c *Cache) Put(key KeyT, val State) {
-	c.Lock()
-	defer c.Unlock()
+func (c *Cache) Put(key KeyT, val ValueT) {
 
+	c.Lock()
 	if e, ok := c.table[key]; ok {
 		c.queue.MoveToFront(e)
-		c.curSize -= e.Value.(*elem).size()
-		e.Value.(*elem).val = ValueT(val)
-		e.Value.(*elem).deadTime = time.Now().Add(time.Duration(c.ttl) * time.Second).Unix()
-		c.curSize += e.Value.(*elem).size()
-	} else {
-		c.table[key] = c.queue.PushFront(&elem{key, ValueT(val),
-			time.Now().Add(time.Duration(c.ttl) * time.Second).Unix()})
-		c.curSize += c.queue.Front().Value.(*elem).size()
-		if c.curSize >= c.maxSize {
-			c.isCollapse <- true
+
+		curElem := e.Value.(*elem)
+		c.curSize -= curElem.size()
+		curElem.val = val
+		curElem.deadTime = time.Now().Add(time.Duration(c.ttl) * time.Second).Unix()
+		c.curSize += curElem.size()
+
+		if Debug {
+			logC.Printf("Updating key: %d, +value bitsize: %d, ->cache bitsize: %d\n", key, curElem.size(), c.curSize)
 		}
+	} else {
+		curElem := &elem{key, ValueT(val), time.Now().Add(time.Duration(c.ttl) * time.Second).Unix()}
+		c.table[key] = c.queue.PushFront(curElem)
+		c.curSize += curElem.size()
+		if Debug {
+			logC.Printf("Add key: %d, +value bitsize: %d, ->cache bitsize: %d\n", key, curElem.size(), c.curSize)
+		}
+	}
+	c.Unlock()
+
+	if c.curSize >= c.maxSize {
+		c.isCollapse <- true
 	}
 }
 
 // Returns the value by key, ok = true - if the item exists.
 // If the key is not in the Cache its return nil, false.
-func (c *Cache) Get(key KeyT) (val State, ok bool) {
+func (c *Cache) Get(key KeyT) (val ValueT, ok bool) {
 	c.Lock()
 	defer c.Unlock()
 
 	if e, ok := c.table[key]; ok && time.Now().Unix() <= e.Value.(*elem).deadTime {
 		c.queue.MoveToFront(e)
-		e.Value.(*elem).deadTime = time.Now().Add(time.Duration(c.ttl) * time.Second).Unix()
+		curElem := e.Value.(*elem)
+		curElem.deadTime = time.Now().Add(time.Duration(c.ttl) * time.Second).Unix()
 		//typeVal := reflect.ValueOf(e.Value.(*elem).val).Elem() //reflect.TypeOf(e.Value.(*elem).val).PkgPath()
-		return State(e.Value.(*elem).val), true
+		if Debug {
+			logC.Printf("Get key: %d - OK\n", key)
+		}
+		return curElem.val, true
 	}
-	return State{}, false
+	if Debug {
+		logC.Printf("Get key: %d - NOT EXIST\n", key)
+	}
+	return nil, false
 }
 
 // Displays the contents of the cache.
@@ -177,20 +208,31 @@ func (c *Cache) Display() {
 }
 
 // Delete element from cache.
-func (c *Cache) Del(key KeyT) {
+func (c *Cache) Del(key KeyT) bool {
 	c.Lock()
 	defer c.Unlock()
-	e, ok := c.table[key]
-	if ok { // bug: don't use Lock() after RLock()
+
+	if e, ok := c.table[key]; ok { // bug: don't use Lock() after RLock()
 		c.curSize -= e.Value.(*elem).size()
 		delete(c.table, e.Value.(*elem).key)
 		c.queue.Remove(e)
+		if Debug {
+			logC.Printf("Del key: %d - OK\n", key)
+		}
+		return true
 	}
+	if Debug {
+		logC.Printf("Del key: %d - NOT EXIST\n", key)
+	}
+	return false
 }
 
 func (c *Cache) removeElem(e *list.Element) {
 	c.Lock()
 	defer c.Unlock()
+	if Debug {
+		logC.Printf("Collapse Cache! Removing key: %d", e.Value.(*elem).key)
+	}
 	c.curSize -= e.Value.(*elem).size()
 	delete(c.table, e.Value.(*elem).key)
 	c.queue.Remove(e)
@@ -204,10 +246,16 @@ func (c *Cache) collapse() {
 	for {
 		select {
 		case <-c.isCollapse:
+			if Debug {
+				logC.Println("Resizing (chan <-c.isCollapse)")
+			}
 			for e := c.queue.Back(); c.curSize >= c.maxSize && e != nil; e = e.Prev() {
 				c.removeElem(e)
 			}
 		case <-timer.C:
+			if Debug {
+				logC.Println("Check old values (chan <-timer.C)")
+			}
 			for e := c.queue.Back(); e != nil &&
 				time.Now().Unix() >= e.Value.(*elem).deadTime; e = e.Prev() {
 				c.removeElem(e)
@@ -216,7 +264,5 @@ func (c *Cache) collapse() {
 		case <-c.isClose:
 			return
 		}
-		logC := log.New(os.Stderr, "[CACHE] ", log.LstdFlags|log.Lmsgprefix)
-		logC.Println("Collapse Cache!")
 	}
 }

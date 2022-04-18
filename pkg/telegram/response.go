@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/MrDjeb/tg-bot-kvartirant/pkg/cache"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/database"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/telegram/keyboard"
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -31,17 +30,16 @@ func (r *UnknownStart) Action(u *tg.Update) error {
 		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк.")
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(idAdmin))
+	d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(idAdmin)
 	if !ok {
 		return tgBot.API.SendText(u, "Кэш с таким idAdmin пуст.")
 	}
-	d := st.Data.(cache.AdminData)
 	number, ok := d.AddingRooms[token]
 	if !ok {
 		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк.")
 	}
 	delete(d.AddingRooms, token)
-	tgBot.State.Put(cache.KeyT(idAdmin), cache.State{Data: d})
+	tgBot.Admin.Cache.Put(idAdmin, d)
 
 	room := database.Room{
 		IdTgAdmin:  database.TelegramID(idAdmin),
@@ -109,7 +107,10 @@ func (r *TenantStart) Action(u *tg.Update) error {
 type TenantCancel struct{ CommandResponser }
 
 func (r *TenantCancel) Action(u *tg.Update) error {
-	tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+		d.Is = ""
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+	}
 	return tgBot.API.SendText(u, "Операци отменена")
 }
 
@@ -128,14 +129,12 @@ func (r *TenantHi) Action(u *tg.Update) error {
 type TenantUnknownMes struct{ MessageResponser }
 
 func (r *TenantUnknownMes) Action(u *tg.Update) error {
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		if d := st.Data.(cache.TenantData); d.Payment[0] || d.Payment[1] || d.Payment[2] || d.Score[0] || d.Score[1] {
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+		if d.Payment[0] || d.Payment[1] || d.Payment[2] || d.Score[0] || d.Score[1] {
 			return tgBot.API.SendText(u, "Продолжите внесение данных.")
 		}
 	}
 	return tgBot.API.SendText(u, tgBot.Text.Unknown_ms)
-
 }
 
 type Water1 struct {
@@ -147,9 +146,7 @@ func (r *Water1) Action(u *tg.Update) error {
 	var msg tg.MessageConfig
 	var inlineButtons []tg.InlineKeyboardButton
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.TenantData)
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
 		switch tint(d.Score[0]) + tint(d.Score[1]) {
 		case 0:
 			msg = tg.NewMessage(u.Message.Chat.ID, "Данные сохронятся после заполнения всех двух параметров.\nВыберете какой хотите внести первым.")
@@ -180,9 +177,7 @@ func (r *Receipt1) Action(u *tg.Update) error {
 	var msg tg.MessageConfig
 	var inlineButtons []tg.InlineKeyboardButton
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.TenantData)
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
 		switch tint(d.Payment[0]) + tint(d.Payment[1]) + tint(d.Payment[2]) {
 		case 0:
 			msg = tg.NewMessage(u.Message.Chat.ID, "Данные сохронятся после заполнения всех трёх параметров.\nВыберете какой хотите внести первым.")
@@ -233,12 +228,11 @@ func (r *Hot_w2) Callback(u *tg.Update) error {
 		return err
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.TenantData)
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Tenant.Water.Hot_w2, Data: d})
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+		d.Is = tgBot.Text.Tenant.Water.Hot_w2
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Tenant.Water.Hot_w2, Data: cache.TenantData{}})
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, TenantData{Is: tgBot.Text.Tenant.Water.Hot_w2})
 	}
 
 	return nil
@@ -257,12 +251,11 @@ func (r *Cold_w2) Callback(u *tg.Update) error {
 		return err
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.TenantData)
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Tenant.Water.Cold_w2, Data: d})
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+		d.Is = tgBot.Text.Tenant.Water.Cold_w2
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Tenant.Water.Cold_w2, Data: cache.TenantData{}})
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, TenantData{Is: tgBot.Text.Tenant.Water.Cold_w2})
 	}
 	return nil
 }
@@ -280,14 +273,12 @@ func (r *Month2) Callback(u *tg.Update) error {
 		return err
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.TenantData)
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Tenant.Receipt.Month2, Data: d})
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+		d.Is = tgBot.Text.Tenant.Receipt.Month2
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Tenant.Receipt.Month2, Data: cache.TenantData{}})
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, TenantData{Is: tgBot.Text.Tenant.Receipt.Month2})
 	}
-
 	return nil
 }
 
@@ -304,14 +295,12 @@ func (r *Amount2) Callback(u *tg.Update) error {
 		return err
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.TenantData)
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Tenant.Receipt.Amount2, Data: d})
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+		d.Is = tgBot.Text.Tenant.Receipt.Amount2
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Tenant.Receipt.Amount2, Data: cache.TenantData{}})
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, TenantData{Is: tgBot.Text.Tenant.Receipt.Amount2})
 	}
-
 	return nil
 }
 
@@ -328,14 +317,12 @@ func (r *Receipt2) Callback(u *tg.Update) error {
 		return err
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.TenantData)
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Tenant.Receipt.Receipt2, Data: d})
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+		d.Is = tgBot.Text.Tenant.Receipt.Receipt2
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Tenant.Receipt.Receipt2, Data: cache.TenantData{}})
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, TenantData{Is: tgBot.Text.Tenant.Receipt.Receipt2})
 	}
-
 	return nil
 }
 
@@ -356,7 +343,10 @@ func (r *AdminStart) Action(u *tg.Update) error {
 type AdminCancel struct{ CommandResponser }
 
 func (r *AdminCancel) Action(u *tg.Update) error {
-	tgBot.State.Del(cache.KeyT(u.FromChat().ID))
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		d.Is = ""
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+	}
 	return tgBot.API.SendText(u, "Операция отменена")
 }
 
@@ -401,13 +391,11 @@ func (r *Rooms1) Action(u *tg.Update) error {
 		return tgBot.API.SendText(u, "⦰Список комнат пуст.")
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		d.Rooms = numbers
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: st.Is, Data: d})
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: cache.AdminData{Rooms: numbers}})
+		tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{Rooms: numbers})
 	}
 
 	msg.ReplyMarkup = keyboard.MakeInKeyboard(keyboard.FormatNumbers(numbers, tgBot.Text.Admin.Room2))
@@ -445,9 +433,7 @@ func (r *Room2) Callback(u *tg.Update) error {
 func (r *Room2) Action(u *tg.Update) error {
 	num := ""
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		num = d.Number
 	} else {
 		return errors.New("gets the nil data from cache, can't do function")
@@ -522,14 +508,12 @@ func (r *Contacts2) Callback(u *tg.Update) error {
 		return err
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Admin.Settings.Contacts2, Data: d})
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		d.Is = tgBot.Text.Admin.Settings.Contacts2
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Admin.Settings.Contacts2})
+		tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{Is: tgBot.Text.Admin.Settings.Contacts2})
 	}
-
 	return nil
 }
 
@@ -546,15 +530,13 @@ func (r *AddRoom3) Callback(u *tg.Update) error {
 		return err
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Admin.Settings.Edit.AddRoom3, Data: d})
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		d.Is = tgBot.Text.Admin.Settings.Edit.AddRoom3
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: tgBot.Text.Admin.Settings.Edit.AddRoom3,
-			Data: cache.AdminData{AddingRooms: make(map[string]string)}})
+		tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{Is: tgBot.Text.Admin.Settings.Edit.AddRoom3,
+			AddingRooms: make(map[string]string)})
 	}
-
 	return nil
 }
 
@@ -582,14 +564,13 @@ func (r *RemoveRoom3) Action(u *tg.Update) error {
 		return tgBot.API.SendText(u, "⦰Список комнат пуст.")
 	}
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		d.RoomsDel = numbers
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Is: st.Is, Data: d})
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
 	} else {
-		tgBot.State.Put(cache.KeyT(u.FromChat().ID), cache.State{Data: cache.AdminData{Rooms: numbers}})
+		tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{Rooms: numbers})
 	}
+
 	names, data := keyboard.FormatNumbers(numbers, tgBot.Text.Admin.Settings.Edit.Removing4)
 	names, data = append(names, []string{tgBot.Text.CommonCommand.BackBut}), append(data, []string{RemoveRoom3BackBut})
 	msg.ReplyMarkup = keyboard.MakeInKeyboard(names, data)
@@ -615,9 +596,7 @@ func (r *Removing4) Callback(u *tg.Update) error {
 func (r *Removing4) Action(u *tg.Update) error {
 	num := ""
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		num = d.NumberDel
 	} else {
 		return errors.New("gets the nil data from cache, can't do function")
@@ -644,9 +623,7 @@ func (r *ConfirmRemove5) Callback(u *tg.Update) error {
 func (r *ConfirmRemove5) Action(u *tg.Update) error {
 	num := ""
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		num = d.NumberDel
 	} else {
 		return errors.New("gets the nil data from cache, can't do function")
@@ -686,9 +663,7 @@ func (r *ShowScorer33) Callback(u *tg.Update) error {
 func (r *ShowScorer33) Action(u *tg.Update) error {
 	num := ""
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		num = d.Number
 	} else {
 		return errors.New("gets the nil data from cache, can't do function")
@@ -729,9 +704,7 @@ func (r *ShowScorerN4) Callback(u *tg.Update) error {
 func (r *ShowScorerN4) Action(u *tg.Update) error {
 	num := ""
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		num = d.Number
 	} else {
 		return errors.New("gets the nil data from cache, can't do function")
@@ -763,9 +736,7 @@ func (r *ShowScorerB3) Callback(u *tg.Update) error {
 func (r *ShowScorerB3) Action(u *tg.Update) error {
 	num := ""
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		num = d.Number
 	} else {
 		return errors.New("gets the nil data from cache, can't do function")
@@ -801,9 +772,7 @@ func (r *ShowPayment33) Callback(u *tg.Update) error {
 func (r *ShowPayment33) Action(u *tg.Update) error {
 	num := ""
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		num = d.Number
 	} else {
 		return errors.New("gets the nil data from cache, can't do function")
@@ -847,9 +816,7 @@ func (r *ShowTenants3) Callback(u *tg.Update) error {
 func (r *ShowTenants3) Action(u *tg.Update) error {
 	num := ""
 
-	st, ok := tgBot.State.Get(cache.KeyT(u.FromChat().ID))
-	if ok {
-		d := st.Data.(cache.AdminData)
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		num = d.Number
 	} else {
 		return errors.New("gets the nil data from cache, can't do function")

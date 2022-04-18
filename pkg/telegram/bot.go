@@ -18,33 +18,40 @@ var tgBot *Bot
 
 type User struct {
 	Handler
+	Cache Cacher
+}
+
+func NewUser(h Handler, c Cacher) User {
+	h.New()
+	c.New()
+	return User{h, c}
 }
 
 type Bot struct {
-	API   API
-	Text  config.Text
-	State *cache.Cache
-	DB    database.Tables
-	Handler
+	API     API
+	Text    config.Text
+	Cache   *cache.Cache
+	DB      database.Tables
 	Tenant  User
 	Admin   User
 	Unknown User
+	Handler
 }
 
-func NewBot(api *tg.BotAPI, text config.Text, db database.Tables, cach *cache.Cache) *Bot {
+func NewBot(api *tg.BotAPI, text config.Text, db database.Tables, cache *cache.Cache) *Bot {
 	b := &Bot{
 		API:     API{api},
 		Text:    text,
-		State:   cach,
+		Cache:   cache,
 		DB:      db,
 		Tenant:  User{},
 		Admin:   User{},
 		Unknown: User{},
 	}
 	tgBot = b
-	b.Tenant = NewUser(&TenantHandler{})
-	b.Admin = NewUser(&AdminHandler{})
-	b.Unknown = NewUser(&UnknownHandler{})
+	b.Tenant = NewUser(&TenantHandler{}, &TenantCacher{})
+	b.Admin = NewUser(&AdminHandler{}, &AdminCacher{})
+	b.Unknown = NewUser(&UnknownHandler{}, &UnknownCacher{})
 	return b
 }
 
@@ -89,7 +96,6 @@ func (l *logBot) Printf(format string, v ...interface{}) {
 func (b *Bot) Start() error {
 	tg.SetLogger(&logBot{log.New(os.Stderr, "[API] ", log.LstdFlags|log.Lmsgprefix)})
 
-	log.Println("Initialization completed!")
 	u := tg.NewUpdate(0)
 	u.Timeout = 60
 	updates := b.API.GetUpdatesChan(u)
