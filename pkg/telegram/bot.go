@@ -96,12 +96,6 @@ func (l *logBot) Printf(format string, v ...interface{}) {
 func (b *Bot) Start() error {
 	tg.SetLogger(&logBot{log.New(os.Stderr, "[API] ", log.LstdFlags|log.Lmsgprefix)})
 
-	fl, e := tgBot.DB.Tenant.IsExist(database.TelegramID(5242006886))
-	log.Println("isExist1", fl, e)
-	tgBot.DB.Tenant.Delete(database.TelegramID(5242006886))
-	fl, e = tgBot.DB.Tenant.IsExist(database.TelegramID(5242006886))
-	log.Println("isExist2", fl, e)
-
 	u := tg.NewUpdate(0)
 	u.Timeout = 60
 	updates := b.API.GetUpdatesChan(u)
