@@ -652,11 +652,17 @@ func (r *ConfirmRemove5) Action(u *tg.Update) error {
 	if err := tgBot.DB.Room.Delete(database.Number(num)); err != nil {
 		return err
 	}
-	if err := tgBot.DB.Tenant.Delete(database.Number(num)); err != nil {
+	rooms, err := tgBot.DB.Room.ReadRooms(database.Number(num))
+	if err != nil {
 		return err
 	}
+	for _, r := range rooms {
+		if err := tgBot.DB.Tenant.Delete(r.IdTgTenant); err != nil {
+			return err
+		}
+	}
 
-	_, err := tgBot.API.Send(msg)
+	_, err = tgBot.API.Send(msg)
 	return err
 }
 
@@ -837,7 +843,7 @@ func (r *ShowTenants3) Action(u *tg.Update) error {
 		return errors.New("gets the nil data from cache, can't do function")
 	}
 
-	rooms, err := tgBot.DB.Room.ReadTenants(database.Number(num))
+	rooms, err := tgBot.DB.Room.ReadRooms(database.Number(num))
 	if err != nil {
 		return err
 	}

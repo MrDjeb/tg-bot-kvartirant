@@ -224,9 +224,9 @@ func (r *DBTenant) Insert(t Tenant) error {
 	return nil
 }
 
-func (r *DBTenant) Delete(num Number) error {
-	logDB.Println("DELETE FROM tenant WHERE number = ?", num)
-	_, err := r.DB.Exec("DELETE FROM tenant WHERE number = ?", num)
+func (r *DBTenant) Delete(tgid TelegramID) error {
+	logDB.Println("DELETE FROM tenant WHERE idTenant = ?", tgid)
+	_, err := r.DB.Exec("DELETE FROM tenant WHERE idTenant = ?", tgid)
 	return err
 }
 
@@ -368,7 +368,7 @@ func (r *DBRoom) Read(tgid TelegramID) ([]Room, error) {
 	return rooms, nil
 }
 
-func (r *DBRoom) ReadTenants(num Number) ([]Room, error) {
+func (r *DBRoom) ReadRooms(num Number) ([]Room, error) {
 	logDB.Println("SELECT * FROM room WHERE number = ?;", num)
 
 	rows, err := r.DB.Query("SELECT * FROM room WHERE number = ?;", num)
