@@ -433,13 +433,13 @@ func (b *Contacts2) HandleInput(u *tg.Update) error {
 func (r *AddRoom3) HandleInput(u *tg.Update) error {
 
 	tidyStr := strings.TrimSpace(u.Message.Text)
-	/*number, err := strconv.ParseFloat(tidyStr, 32)
-	if err != nil || number < 0 || number > 4294967296 {
-		if err := tgBot.API.SendText(u, "Введите номер комнаты в виде числа."); err != nil {
+	number := tidyStr
+	if len(number) > 32 {
+		if err := tgBot.API.SendText(u, "Длина номера должна быть меньше 32 символов."); err != nil {
 			return err
 		}
 		return nil //error broken
-	}*/
+	}
 	dataToken := TokenFromNum(tidyStr, u.FromChat().ID)
 
 	d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID)
@@ -451,10 +451,8 @@ func (r *AddRoom3) HandleInput(u *tg.Update) error {
 		d.AddingRooms = make(map[string]string)
 	}
 	d.AddingRooms[dataToken] = tidyStr
-	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
-		d.Is = ""
-		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
-	}
+	d.Is = ""
+	tgBot.Admin.Cache.Put(u.FromChat().ID, d)
 
 	link := fmt.Sprintf(DEEPLINK, tgBot.API.Self.UserName, base64.StdEncoding.EncodeToString([]byte(dataToken)))
 	if err := tgBot.API.SendText(u, fmt.Sprintf("Добавлено ожидание пользователя для квартиры под номером: %s\n%s", tidyStr, link)); err != nil {

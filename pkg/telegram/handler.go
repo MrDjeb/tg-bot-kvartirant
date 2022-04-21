@@ -261,19 +261,16 @@ func (h *AdminHandler) Photo(u *tg.Update) error {
 }
 
 func (h *AdminHandler) Message(u *tg.Update) error {
-
-	if mes, ok := h.Mes[u.Message.Text]; ok {
-		return mes.Action(u)
-	}
-
 	if but, ok := h.But[u.Message.Text]; ok {
 		return but.Action(u)
 	}
-
 	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok && d.Is != "" {
 		if inp, ok := h.Inp[d.Is]; ok {
 			return inp.HandleInput(u)
 		}
+	}
+	if mes, ok := h.Mes[u.Message.Text]; ok {
+		return mes.Action(u)
 	}
 	return h.Mes[tgBot.Text.CommonCommand.Unknown].Action(u)
 }

@@ -152,14 +152,14 @@ func (c *Cache) Put(key KeyT, val ValueT) {
 		c.curSize += curElem.size()
 
 		if Debug {
-			logC.Printf("Updating key: %d, +value bitsize: %d, ->cache bitsize: %d\n", key, curElem.size(), c.curSize)
+			logC.Printf("Updating key: %d, +value: %+v, ->cache bitsize: %d\n", key, val, c.curSize)
 		}
 	} else {
 		curElem := &elem{key, ValueT(val), time.Now().Add(time.Duration(c.ttl) * time.Second).Unix()}
 		c.table[key] = c.queue.PushFront(curElem)
 		c.curSize += curElem.size()
 		if Debug {
-			logC.Printf("Add key: %d, +value bitsize: %d, ->cache bitsize: %d\n", key, curElem.size(), c.curSize)
+			logC.Printf("Add key: %d, +value: %+v, ->cache bitsize: %d\n", key, val, c.curSize)
 		}
 	}
 	c.Unlock()
@@ -181,7 +181,7 @@ func (c *Cache) Get(key KeyT) (val ValueT, ok bool) {
 		curElem.deadTime = time.Now().Add(time.Duration(c.ttl) * time.Second).Unix()
 		//typeVal := reflect.ValueOf(e.Value.(*elem).val).Elem() //reflect.TypeOf(e.Value.(*elem).val).PkgPath()
 		if Debug {
-			logC.Printf("Get key: %d - OK\n", key)
+			logC.Printf("Get key: %d - OK, val:%+v\n", key, curElem.val)
 		}
 		return curElem.val, true
 	}

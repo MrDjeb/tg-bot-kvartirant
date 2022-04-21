@@ -32,11 +32,11 @@ func (r *UnknownStart) Action(u *tg.Update) error {
 
 	d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(idAdmin)
 	if !ok {
-		return tgBot.API.SendText(u, "Кэш с таким idAdmin пуст.")
+		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк. (err3),Кэш с таким idAdmin пуст.")
 	}
 	number, ok := d.AddingRooms[token]
 	if !ok {
-		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк. (err3)")
+		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк. (err4)")
 	}
 	delete(d.AddingRooms, token)
 	tgBot.Admin.Cache.Put(idAdmin, d)
