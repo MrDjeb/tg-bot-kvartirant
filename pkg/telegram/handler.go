@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/database"
@@ -99,36 +100,37 @@ func (h *UnknownHandler) Message(u *tg.Update) error {
 	return h.Cmd[tgBot.Text.CommonCommand.Unknown].Action(u)
 }
 
-///////////////////
+// /////////////////
 type TenantHandler struct{ HandlerResponse }
 
 func (h *TenantHandler) New() {
-	t := tgBot.Text.Tenant
+	TC := tgBot.Text.CommonCommand
+	TT := tgBot.Text.Tenant
 	h.Cmd = map[string]CommandResponser{
-		tgBot.Text.CommonCommand.Start:   &TenantStart{But: keyboard.MakeKeyboard([]string{t.Water1, t.Receipt1}, []string{t.Report1})},
-		tgBot.Text.CommonCommand.Cancel:  &TenantCancel{},
-		tgBot.Text.CommonCommand.Unknown: &TenantUnknownCmd{},
+		TC.Start:   &TenantStart{But: keyboard.MakeKeyboard([]string{TT.Water1, TT.Receipt1}, []string{TT.Report1})},
+		TC.Cancel:  &TenantCancel{},
+		TC.Unknown: &TenantUnknownCmd{},
 	}
 	h.Mes = map[string]MessageResponser{
-		tgBot.Text.CommonMessage.Hi:      &TenantHi{},
-		tgBot.Text.CommonCommand.Unknown: &TenantUnknownMes{},
+		tgBot.Text.CommonMessage.Hi: &TenantHi{},
+		TC.Unknown:                  &TenantUnknownMes{},
 	}
 	h.But = map[string]ButtonResponser{
-		tgBot.Text.Tenant.Water1: &Water1{But: tg.NewInlineKeyboardRow(tg.NewInlineKeyboardButtonData(t.Water.Hot_w2, t.Water.Hot_w2),
-			tg.NewInlineKeyboardButtonData(t.Water.Cold_w2, t.Water.Cold_w2))},
-		tgBot.Text.Tenant.Receipt1: &Receipt1{But: tg.NewInlineKeyboardRow(
-			tg.NewInlineKeyboardButtonData(t.Receipt.Month2, t.Receipt.Month2),
-			tg.NewInlineKeyboardButtonData(t.Receipt.Amount2, t.Receipt.Amount2),
-			tg.NewInlineKeyboardButtonData(t.Receipt.Receipt2, t.Receipt.Receipt2),
-		)},
-		tgBot.Text.Tenant.Report1: &Report1{},
+		TT.Water1:   &Water1{But: keyboard.MakeInKeyboard([][]string{{TT.Water.Hot_w2, TT.Water.Cold_w2}, {TT.Water.Choose_month}}, [][]string{{TT.Water.Hot_w2, TT.Water.Cold_w2}, {TT.Water.Choose_month}})},
+		TT.Receipt1: &Receipt1{But: keyboard.MakeInKeyboard([][]string{{TT.Receipt.Month2, TT.Receipt.Amount2, TT.Receipt.Receipt2}}, [][]string{{TT.Receipt.Month2, TT.Receipt.Amount2, TT.Receipt.Receipt2}})},
+		TT.Report1:  &Report1{},
+	}
+	h.Inb = map[string]InbuttonResponser{
+		TT.Water.Choose_month:   &ChooseMonth{Prefix: TT.Water.Month_prefix},
+		TT.Water.Month_prefix:   &WaterM1{But: keyboard.MakeInKeyboard([][]string{{TT.Water.Hot_w2, TT.Water.Cold_w2}, {TT.Water.Choose_month}}, [][]string{{TT.Water.Hot_w2, TT.Water.Cold_w2}, {TT.Water.Choose_month}})},
+		TT.Receipt.Month2:       &ChooseMonth{Prefix: TT.Receipt.Month_prefix},
+		TT.Receipt.Month_prefix: &Month2{},
 	}
 	h.Inp = map[string]InputResponser{
-		tgBot.Text.Tenant.Water.Cold_w2:    &Cold_w2{},
-		tgBot.Text.Tenant.Water.Hot_w2:     &Hot_w2{},
-		tgBot.Text.Tenant.Receipt.Amount2:  &Amount2{},
-		tgBot.Text.Tenant.Receipt.Month2:   &Month2{},
-		tgBot.Text.Tenant.Receipt.Receipt2: &Receipt2{},
+		TT.Water.Cold_w2:    &Cold_w2{},
+		TT.Water.Hot_w2:     &Hot_w2{},
+		TT.Receipt.Amount2:  &Amount2{},
+		TT.Receipt.Receipt2: &Receipt2{},
 	}
 }
 
@@ -136,6 +138,37 @@ func (h *TenantHandler) Callback(u *tg.Update) error {
 	if inp, ok := h.Inp[u.CallbackQuery.Data]; ok {
 		return inp.Callback(u)
 	}
+	if Inb, ok := h.Inb[u.CallbackQuery.Data]; ok {
+		return Inb.Callback(u)
+	}
+
+	if strings.Contains(u.CallbackQuery.Data, keyboard.DEL) {
+		prefix, suffix := strings.Split(u.CallbackQuery.Data, keyboard.DEL)[0], strings.Split(u.CallbackQuery.Data, keyboard.DEL)[1]
+		if inb, ok := h.Inb[prefix]; ok {
+			month, err := strconv.Atoi(strings.Split(suffix, "-")[1])
+			if err != nil {
+				return err
+			}
+			switch prefix {
+			case tgBot.Text.Tenant.Water.Month_prefix:
+				if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+					d.ScoreDate = uint8(month)
+					tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+				} else {
+					tgBot.Tenant.Cache.Put(u.FromChat().ID, TenantData{ScoreDate: uint8(month)})
+				}
+			case tgBot.Text.Tenant.Receipt.Month_prefix:
+				if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+					d.PaymentDate = uint8(month)
+					tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+				} else {
+					tgBot.Tenant.Cache.Put(u.FromChat().ID, TenantData{PaymentDate: uint8(month)})
+				}
+			}
+			return inb.Callback(u)
+		}
+	}
+
 	return h.Mes[tgBot.Text.CommonCommand.Unknown].Action(u)
 }
 
@@ -168,12 +201,14 @@ func (h *TenantHandler) Message(u *tg.Update) error {
 		if d.Is == tgBot.Text.Tenant.Receipt.Receipt2 {
 			return tgBot.API.SendText(u, "Пришлите фото.")
 		}
-		return h.Inp[d.Is].HandleInput(u)
+		if inp, ok := h.Inp[d.Is]; ok {
+			return inp.HandleInput(u)
+		}
 	}
 	return h.Mes[tgBot.Text.CommonCommand.Unknown].Action(u)
 }
 
-///////////////////////
+// /////////////////////
 type AdminHandler struct{ HandlerResponse }
 
 func (h *AdminHandler) New() {

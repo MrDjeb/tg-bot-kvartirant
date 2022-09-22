@@ -13,7 +13,7 @@ type Text struct {
 	JwtKey     string
 	GodModeKey string
 	Buttons
-	Response
+	Response Response
 	CommonCommand
 	CommonMessage
 }
@@ -24,9 +24,20 @@ type Buttons struct {
 }
 
 type Response struct {
-	Start       string `mapstructure:"start"`
-	Unknown_cmd string `mapstructure:"unknown_cmd"`
-	Unknown_ms  string `mapstructure:"unknown_ms"`
+	Start          string `mapstructure:"start"`
+	Unknown_cmd    string `mapstructure:"unknown_cmd"`
+	Unknown_ms     string `mapstructure:"unknown_ms"`
+	Cache_ttl      string `mapstructure:"cache_ttl"`
+	Water1_first   string `mapstructure:"water1_first"`
+	Water1_sec     string `mapstructure:"water1_sec"`
+	Water2_inp     string `mapstructure:"water2_inp"`
+	Water2_change  string `mapstructure:"water2_change"`
+	Water2_saved   string `mapstructure:"water2_saved"`
+	Receipt1_first string `mapstructure:"receipt1_first"`
+	Receipt1_sec   string `mapstructure:"receipt1_sec"`
+	Receipt1_third string `mapstructure:"receipt1_third"`
+	Amount2_inp    string `mapstructure:"amount2_inp"`
+	Receipt2_saved string `mapstructure:"receipt2_saved"`
 }
 
 type CommonCommand struct {
@@ -49,14 +60,17 @@ type Tenant struct {
 }
 
 type Water struct {
-	Hot_w2  string `mapstructure:"hot_w2"`
-	Cold_w2 string `mapstructure:"cold_w2"`
+	Hot_w2       string `mapstructure:"hot_w2"`
+	Cold_w2      string `mapstructure:"cold_w2"`
+	Choose_month string `mapstructure:"choose_month"`
+	Month_prefix string `mapstructure:"month_prefix"`
 }
 
 type Receipt struct {
-	Month2   string `mapstructure:"month2"`
-	Amount2  string `mapstructure:"amount2"`
-	Receipt2 string `mapstructure:"receipt2"`
+	Month2       string `mapstructure:"month2"`
+	Amount2      string `mapstructure:"amount2"`
+	Receipt2     string `mapstructure:"receipt2"`
+	Month_prefix string `mapstructure:"month_prefix"`
 }
 
 type Admin struct {

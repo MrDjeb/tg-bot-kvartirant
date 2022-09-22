@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/database"
 	"github.com/MrDjeb/tg-bot-kvartirant/pkg/telegram/keyboard"
@@ -108,7 +109,7 @@ type TenantCancel struct{ CommandResponser }
 
 func (r *TenantCancel) Action(u *tg.Update) error {
 	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
-		d.Is = ""
+		d.Erase()
 		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 	}
 	return tgBot.API.SendText(u, "Операци отменена")
@@ -134,69 +135,69 @@ func (r *TenantUnknownMes) Action(u *tg.Update) error {
 			return tgBot.API.SendText(u, "Продолжите внесение данных.")
 		}
 	}
-	return tgBot.API.SendText(u, tgBot.Text.Unknown_ms)
+	return tgBot.API.SendText(u, tgBot.Text.Response.Unknown_ms)
 }
 
 type Water1 struct {
 	ButtonResponser
-	But []tg.InlineKeyboardButton
+	But keyboard.InKeyboard
 }
 
 func (r *Water1) Action(u *tg.Update) error {
 	var msg tg.MessageConfig
-	var inlineButtons []tg.InlineKeyboardButton
 
-	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
-		switch tint(d.Score[0]) + tint(d.Score[1]) {
-		case 0:
-			msg = tg.NewMessage(u.Message.Chat.ID, "Данные сохронятся после заполнения всех двух параметров.\nВыберете какой хотите внести первым.")
-		case 1:
-			msg = tg.NewMessage(u.Message.Chat.ID, "Данные сохронятся после заполнения всех двух параметров.\nВнесите последний параметр.")
-		}
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok && (d.Score[0] != d.Score[1]) { //xor
+
+		msg = tg.NewMessage(u.Message.Chat.ID, tgBot.Text.Response.Water1_sec)
+		var inlineButtons []tg.InlineKeyboardButton
 		for i := range d.Score {
 			if !d.Score[i] {
-				inlineButtons = append(inlineButtons, r.But[i])
+				inlineButtons = append(inlineButtons, r.But.InlineKeyboard[0][i])
 			}
 		}
+		msg.ReplyMarkup = tg.NewInlineKeyboardMarkup(inlineButtons)
 	} else {
-		msg = tg.NewMessage(u.Message.Chat.ID, "Данные сохронятся после заполнения всех двух параметров.\nВыберете какой хотите внести первым.")
-		inlineButtons = r.But
+		date := "текущий"
+		if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok && d.ScoreDate != 0 {
+			date = getAverageDate(d.ScoreDate)
+		}
+		msg = tg.NewMessage(u.FromChat().ID, fmt.Sprintf(tgBot.Text.Response.Water1_first, date))
+		msg.ReplyMarkup = r.But
 	}
 
-	msg.ReplyMarkup = tg.NewInlineKeyboardMarkup(inlineButtons)
 	_, err := tgBot.API.Send(msg)
 	return err
 }
 
 type Receipt1 struct {
 	ButtonResponser
-	But []tg.InlineKeyboardButton
+	But keyboard.InKeyboard
 }
 
 func (r *Receipt1) Action(u *tg.Update) error {
 	var msg tg.MessageConfig
-	var inlineButtons []tg.InlineKeyboardButton
 
 	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
 		switch tint(d.Payment[0]) + tint(d.Payment[1]) + tint(d.Payment[2]) {
 		case 0:
-			msg = tg.NewMessage(u.Message.Chat.ID, "Данные сохронятся после заполнения всех трёх параметров.\nВыберете какой хотите внести первым.")
+			msg = tg.NewMessage(u.FromChat().ID, tgBot.Text.Response.Receipt1_first)
 		case 1:
-			msg = tg.NewMessage(u.Message.Chat.ID, "Данные сохронятся после заполнения всех трёх параметров.\nВыберете какой хотите внести следующим.")
+			msg = tg.NewMessage(u.FromChat().ID, tgBot.Text.Response.Receipt1_sec)
 		case 2:
-			msg = tg.NewMessage(u.Message.Chat.ID, "Данные сохронятся после заполнения всех трёх параметров.\nВнесите последний параметр.")
+			msg = tg.NewMessage(u.FromChat().ID, tgBot.Text.Response.Receipt1_third)
 		}
+		var inlineButtons []tg.InlineKeyboardButton
 		for i := range d.Payment {
 			if !d.Payment[i] {
-				inlineButtons = append(inlineButtons, r.But[i])
+				inlineButtons = append(inlineButtons, r.But.InlineKeyboard[0][i])
 			}
 		}
+		msg.ReplyMarkup = tg.NewInlineKeyboardMarkup(inlineButtons)
 	} else {
-		msg = tg.NewMessage(u.Message.Chat.ID, "Данные сохронятся после заполнения всех трёх параметров.\nВыберете какой хотите внести первым.")
-		inlineButtons = r.But
+		msg = tg.NewMessage(u.FromChat().ID, tgBot.Text.Response.Receipt1_first)
+		msg.ReplyMarkup = r.But
 	}
 
-	msg.ReplyMarkup = tg.NewInlineKeyboardMarkup(inlineButtons)
 	_, err := tgBot.API.Send(msg)
 	return err
 }
@@ -228,7 +229,6 @@ func (r *Report1) Action(u *tg.Update) error {
 }
 
 type Hot_w2 struct {
-	tg.InlineKeyboardButton
 	InputResponser
 }
 
@@ -236,7 +236,10 @@ func (r *Hot_w2) Callback(u *tg.Update) error {
 	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введите показания с счётчика горячей воды. К примеру: 34,56"); err != nil {
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	if err := tgBot.API.SendText(u, tgBot.Text.Response.Water2_inp); err != nil {
 		return err
 	}
 
@@ -251,7 +254,6 @@ func (r *Hot_w2) Callback(u *tg.Update) error {
 }
 
 type Cold_w2 struct {
-	tg.InlineKeyboardButton
 	InputResponser
 }
 
@@ -259,7 +261,10 @@ func (r *Cold_w2) Callback(u *tg.Update) error {
 	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введите показания с счётчика холодной воды. К примеру: 34,56"); err != nil {
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	if err := tgBot.API.SendText(u, tgBot.Text.Response.Water2_inp); err != nil {
 		return err
 	}
 
@@ -272,30 +277,7 @@ func (r *Cold_w2) Callback(u *tg.Update) error {
 	return nil
 }
 
-type Month2 struct {
-	tg.InlineKeyboardButton
-	InputResponser
-}
-
-func (r *Month2) Callback(u *tg.Update) error {
-	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
-		return err
-	}
-	if err := tgBot.API.SendText(u, "Введите номер месяца, за который была произведена оплата ‒ число от 1 до 12."); err != nil {
-		return err
-	}
-
-	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
-		d.Is = tgBot.Text.Tenant.Receipt.Month2
-		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
-	} else {
-		tgBot.Tenant.Cache.Put(u.FromChat().ID, TenantData{Is: tgBot.Text.Tenant.Receipt.Month2})
-	}
-	return nil
-}
-
 type Amount2 struct {
-	tg.InlineKeyboardButton
 	InputResponser
 }
 
@@ -303,7 +285,10 @@ func (r *Amount2) Callback(u *tg.Update) error {
 	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введите сумму в рублях, которую вы оплатили. К примеру, 4500"); err != nil {
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	if err := tgBot.API.SendText(u, tgBot.Text.Response.Amount2_inp); err != nil {
 		return err
 	}
 
@@ -317,12 +302,14 @@ func (r *Amount2) Callback(u *tg.Update) error {
 }
 
 type Receipt2 struct {
-	tg.InlineKeyboardButton
 	InputResponser
 }
 
 func (r *Receipt2) Callback(u *tg.Update) error {
 	if err := tgBot.API.AnsCallback(u, "Start inputing..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
 	if err := tgBot.API.SendText(u, "Прикрепите изображение квитанции, подтверждающее факт оплаты."); err != nil {
@@ -336,6 +323,130 @@ func (r *Receipt2) Callback(u *tg.Update) error {
 		tgBot.Tenant.Cache.Put(u.FromChat().ID, TenantData{Is: tgBot.Text.Tenant.Receipt.Receipt2})
 	}
 	return nil
+}
+
+type Month2 struct {
+	InbuttonResponser
+	Prefix string
+}
+
+func (r *Month2) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Choosen..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	return r.Action(u)
+
+}
+
+func (r *Month2) Action(u *tg.Update) error {
+	num, err := tgBot.DB.Room.GetRoom(database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
+
+	d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID)
+	if !ok {
+		return tgBot.API.SendText(u, tgBot.Text.Response.Cache_ttl)
+	}
+	d.Payment[0] = true
+
+	if d.Payment[0] && d.Payment[1] && d.Payment[2] {
+
+		payment := database.Payment{
+			Number:    num,
+			Amount:    database.AmountRUB(d.PaymentAmount),
+			PayMoment: database.Date(time.Now().Format(LAYOUT)),
+			Date:      database.Date(getAverageDate(d.PaymentDate)),
+			Photo:     database.Photo(d.PaymentReceipt),
+		}
+		if err := tgBot.DB.Payment.Insert(payment); err != nil {
+			return err
+		}
+		if err := tgBot.API.SendText(u, fmt.Sprintf(tgBot.Text.Response.Receipt2_saved, payment.Amount, payment.Date)); err != nil {
+			return err
+		}
+		if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {
+			d.Erase()
+			tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+		}
+	} else {
+		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
+		if err := tgBot.API.SendText(u, "Месяц успешно добавлен."); err != nil {
+			return err
+		}
+		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].Action(u); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+type ChooseMonth struct {
+	InbuttonResponser
+	Prefix string
+}
+
+func (r *ChooseMonth) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Choosen..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *ChooseMonth) Action(u *tg.Update) error {
+	msg := tg.NewMessage(u.FromChat().ID, "🌙 Выберите месяц:")
+
+	/*InName, InData := keyboard.MakeFormatMonth(r.Prefix)
+	for i := range InName {
+		for j := range InName[i] {
+				mon, _ := strconv.Atoi(InName[i][j])
+				fmt.Println(getAverageDate(uint8(mon))[:4])
+				yer, _ := strconv.Atoi(getAverageDate(uint8(mon))[:4])
+				if time.Now().Year() < yer {
+					InName[i][j] += "+"
+				} else if time.Now().Year() > yer {
+					InName[i][j] += "-"
+				}
+			}
+		}*/
+
+	msg.ReplyMarkup = keyboard.MakeInKeyboard(getFormatCalendar(r.Prefix))
+	_, err := tgBot.API.Send(msg)
+	return err
+}
+
+type WaterM1 struct {
+	InbuttonResponser
+	But keyboard.InKeyboard
+}
+
+func (r *WaterM1) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Choosen..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *WaterM1) Action(u *tg.Update) error {
+	date := "текущий"
+	if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok && d.ScoreDate != 0 {
+		date = getAverageDate(d.ScoreDate)
+	}
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf(tgBot.Text.Response.Water1_first, date))
+	msg.ReplyMarkup = r.But
+
+	_, err := tgBot.API.Send(msg)
+	return err
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -383,7 +494,7 @@ func (r *AdminUnknownMes) Action(u *tg.Update) error {
 			return tgBot.API.SendText(u, "Продолжите внесение данных.")
 		}
 	}*/
-	return tgBot.API.SendText(u, tgBot.Text.Unknown_ms)
+	return tgBot.API.SendText(u, tgBot.Text.Response.Unknown_ms)
 
 }
 
@@ -640,29 +751,12 @@ func (r *ConfirmRemove5) Action(u *tg.Update) error {
 	} else {
 		return errors.New("gets the nil data from cache, can't do function")
 	}
-
+	if err := DeleteRoom(database.Number(num)); err != nil {
+		return err
+	}
 	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf("❌Комната № 〈%s〉 удалена!", num))
 
-	if err := tgBot.DB.Scorer.Delete(database.Number(num)); err != nil {
-		return err
-	}
-	if err := tgBot.DB.Payment.Delete(database.Number(num)); err != nil {
-		return err
-	}
-	if err := tgBot.DB.Room.Delete(database.Number(num)); err != nil {
-		return err
-	}
-	rooms, err := tgBot.DB.Room.ReadRooms(database.Number(num))
-	if err != nil {
-		return err
-	}
-	for _, r := range rooms {
-		if err := tgBot.DB.Tenant.Delete(r.IdTgTenant); err != nil {
-			return err
-		}
-	}
-
-	_, err = tgBot.API.Send(msg)
+	_, err := tgBot.API.Send(msg)
 	return err
 }
 
@@ -860,6 +954,28 @@ func (r *ShowTenants3) Action(u *tg.Update) error {
 	msg := tg.NewMessage(u.FromChat().ID, usernames)
 	msg.ParseMode = tg.ModeMarkdown
 	_, err = tgBot.API.Send(msg)
+	return err
+}
+
+func DeleteRoom(num database.Number) error {
+	rooms, err := tgBot.DB.Room.ReadRooms(database.Number(num))
+	if err != nil {
+		return err
+	}
+	for _, r := range rooms {
+		if err := tgBot.DB.Tenant.Delete(r.IdTgTenant); err != nil {
+			return err
+		}
+	}
+	if err := tgBot.DB.Scorer.Delete(database.Number(num)); err != nil {
+		return err
+	}
+	if err := tgBot.DB.Payment.Delete(database.Number(num)); err != nil {
+		return err
+	}
+	if err := tgBot.DB.Room.Delete(database.Number(num)); err != nil {
+		return err
+	}
 	return err
 }
 

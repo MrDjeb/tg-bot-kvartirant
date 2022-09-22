@@ -26,7 +26,7 @@ func main() {
 	}
 	defer db.Scorer.DB.Close()
 
-	cach, err := cache.NewCache(60 * 60)
+	cach, err := cache.NewCache(60 * 60 * 24)
 	if err != nil {
 		log.Fatalln(err)
 	}

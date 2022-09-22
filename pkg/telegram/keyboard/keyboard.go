@@ -77,3 +77,25 @@ func FormatNumbers(numbers []string, prefix string) (fNum [][]string, fData [][]
 
 	return fNum, fData
 }
+
+func MakeFormatMonth(prefix string) (fNum [][]string, fData [][]string) {
+	fNum, fData = make([][]string, 3), make([][]string, 3)
+	for i := range fNum {
+		fNum[i], fData[i] = make([]string, 4), make([]string, 4)
+	}
+
+	for i := 0; i < 9; i++ {
+		fNum[i/4][i%4] = string('1' + rune(i))
+		fData[i/4][i%4] = prefix + DEL + fNum[i/4][i%4]
+	}
+	fNum[2][1] = "10"
+	fNum[2][2] = "11"
+	fNum[2][3] = "12"
+
+	for i := range fNum {
+		for j := range fNum[i] {
+			fData[i][j] = prefix + DEL + fNum[i][j]
+		}
+	}
+	return fNum, fData
+}

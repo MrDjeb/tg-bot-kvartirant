@@ -11,16 +11,19 @@ type TenantData struct {
 	Is             string
 	Payment        [3]bool
 	Score          [2]bool
-	PaymentMonth   uint8
+	PaymentDate    uint8
 	PaymentAmount  database.AmountRUB
 	PaymentReceipt database.Photo
 	ScoreHot_w     database.ScoreM3
 	ScoreCold_w    database.ScoreM3
+	ScoreDate      uint8
 }
 
 func (s *TenantData) Erase() {
 	s.Score = [2]bool{false, false}
 	s.Payment = [3]bool{false, false, false}
+	s.ScoreDate = 0
+	s.Is = ""
 }
 
 type AdminData struct {
