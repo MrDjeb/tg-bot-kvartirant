@@ -9,6 +9,7 @@ type Config struct {
 	TgToken string
 	Text
 }
+
 type Text struct {
 	JwtKey     string
 	GodModeKey string
@@ -16,6 +17,12 @@ type Text struct {
 	Response Response
 	CommonCommand
 	CommonMessage
+	Constants Constants
+}
+
+type Constants struct {
+	MAX_SHOW_SCORER  int `mapstructure:"max_show_scorer"`
+	MAX_SHOW_PAYMENT int `mapstructure:"max_show_payment"`
 }
 
 type Buttons struct {
@@ -38,6 +45,11 @@ type Response struct {
 	Receipt1_third string `mapstructure:"receipt1_third"`
 	Amount2_inp    string `mapstructure:"amount2_inp"`
 	Receipt2_saved string `mapstructure:"receipt2_saved"`
+	Report1_info   string `mapstructure:"report1_info"`
+	Rooms1_list    string `mapstructure:"rooms1_list"`
+	Rooms1_nil     string `mapstructure:"rooms1_nil"`
+	Settings1      string `mapstructure:"settings1"`
+	Room2          string `mapstructure:"room2"`
 }
 
 type CommonCommand struct {
@@ -82,17 +94,23 @@ type Admin struct {
 }
 
 type Room struct {
-	ShowScorer33  string `mapstructure:"show_scorer33"`
-	ShowScorerN4  string `mapstructure:"show_scorerN4"`
-	ShowScorerB3  string `mapstructure:"show_scorerB3"`
-	ShowPayment33 string `mapstructure:"show_payment33"`
-	ShowTenants3  string `mapstructure:"show_tenants3"`
+	Payment_prefix string `mapstructure:"payment_prefix"`
+	ShowScorer33   string `mapstructure:"show_scorer33"`
+	ShowScorerN4   string `mapstructure:"show_scorerN4"`
+	ShowScorerB3   string `mapstructure:"show_scorerB3"`
+	ShowPayment33  string `mapstructure:"show_payment33"`
+	ShowPaymentN4  string `mapstructure:"show_paymentN4"`
+	ShowPaymentB3  string `mapstructure:"show_paymentB3"`
+	ShowTenants3   string `mapstructure:"show_tenants3"`
 }
+
 type Settings struct {
-	Edit2     string `mapstructure:"edit2"`
-	Contacts2 string `mapstructure:"contacts2"`
-	Reminder2 string `mapstructure:"reminder2"`
-	Edit      Edit
+	Edit2         string `mapstructure:"edit2"`
+	Contacts2     string `mapstructure:"contacts2"`
+	Reminder2     string `mapstructure:"reminder2"`
+	ReminderSend3 string `mapstructure:"reminder_send3"`
+	ReminderEdit3 string `mapstructure:"reminder_edit3"`
+	Edit          Edit
 }
 
 type Edit struct {
@@ -162,6 +180,10 @@ func unmarshal(cfg *Config) error {
 		return err
 	}
 	if err := viper.UnmarshalKey("text.common_message", &cfg.Text.CommonMessage); err != nil {
+		return err
+	}
+
+	if err := viper.UnmarshalKey("text.constants", &cfg.Text.Constants); err != nil {
 		return err
 	}
 

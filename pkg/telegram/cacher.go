@@ -33,6 +33,8 @@ type AdminData struct {
 	RoomsDel    []string
 	Number      string
 	NumberDel   string
+	ShowPayment string
+	RemindText  string
 }
 
 type Cacher interface {

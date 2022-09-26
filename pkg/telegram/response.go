@@ -214,7 +214,7 @@ func (r *Report1) Action(u *tg.Update) error {
 		return err
 	}
 
-	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf("По техническим вопросам пишите в личные сообщения [%s](tg://user?username=%s)", username, username))
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf(tgBot.Text.Response.Report1_info, username, username))
 	msg.ParseMode = tg.ModeMarkdown
 	if _, err = tgBot.API.Send(msg); err != nil {
 		return err
@@ -503,7 +503,7 @@ type Rooms1 struct {
 }
 
 func (r *Rooms1) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "🏠 Список комнат⋮ ")
+	msg := tg.NewMessage(u.FromChat().ID, tgBot.Text.Response.Rooms1_list)
 
 	numbers, err := getRooms(u.FromChat().ID)
 	if err != nil {
@@ -511,7 +511,7 @@ func (r *Rooms1) Action(u *tg.Update) error {
 	}
 
 	if len(numbers) == 0 {
-		return tgBot.API.SendText(u, "⦰Список комнат пуст.")
+		return tgBot.API.SendText(u, tgBot.Text.Response.Rooms1_nil)
 	}
 
 	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
@@ -532,7 +532,7 @@ type Settings1 struct {
 }
 
 func (r *Settings1) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "🔧⋯⋯⋯⋯⋯⇐Settings⇒⋯⋯⋯⋯⋯🔧")
+	msg := tg.NewMessage(u.FromChat().ID, tgBot.Text.Response.Settings1)
 	msg.ReplyMarkup = r.But
 	_, err := tgBot.API.Send(msg)
 	return err
@@ -562,7 +562,7 @@ func (r *Room2) Action(u *tg.Update) error {
 		return errors.New("gets the nil data from cache, can't do function")
 	}
 
-	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf("💠 № 〈%s〉 :", num))
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf(tgBot.Text.Response.Room2, num))
 	msg.ReplyMarkup = r.But
 	_, err := tgBot.API.Send(msg)
 	return err
@@ -588,34 +588,6 @@ func (r *Edit2) Action(u *tg.Update) error {
 	msg.ReplyMarkup = r.But
 	_, err := tgBot.API.Send(msg)
 	return err
-}
-
-type Reminder2 struct{ InbuttonResponser }
-
-func (r *Reminder2) Callback(u *tg.Update) error {
-	if err := tgBot.API.AnsCallback(u, "Sending message."); err != nil {
-		return err
-	}
-	if err := tgBot.API.DelMes(u); err != nil {
-		return err
-	}
-	return r.Action(u)
-}
-
-func (r *Reminder2) Action(u *tg.Update) error {
-	rooms, err := tgBot.DB.Room.Read(database.TelegramID(u.FromChat().ID))
-	if err != nil {
-		return err
-	}
-
-	for _, room := range rooms {
-		msg := tg.NewMessage(int64(room.IdTgTenant), "❗❗❗ Напиминаю о своевременной оплате.")
-		if _, err := tgBot.API.Send(msg); err != nil {
-			return err
-		}
-	}
-
-	return tgBot.API.SendText(u, "✅Напоминания отправлены успешно.")
 }
 
 type Contacts2 struct{ InputResponser }
@@ -661,6 +633,95 @@ func (r *AddRoom3) Callback(u *tg.Update) error {
 			AddingRooms: make(map[string]string)})
 	}
 	return nil
+}
+
+type Reminder2 struct {
+	InputResponser
+	But keyboard.InKeyboard
+}
+
+func (r *Reminder2) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Sending message."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	if err := tgBot.API.SendText(u, "Введите сообщение, копию которого хотите разослать:"); err != nil {
+		return err
+	}
+
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		d.Is = tgBot.Text.Admin.Settings.Reminder2
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+	} else {
+		tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{Is: tgBot.Text.Admin.Settings.Reminder2})
+	}
+	return nil
+}
+
+type ReminderEdit3 struct {
+	InputResponser
+	But keyboard.InKeyboard
+}
+
+func (r *ReminderEdit3) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Sending message."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	if err := tgBot.API.SendText(u, "Введите сообщение, копию которого хотите разослать:"); err != nil {
+		return err
+	}
+
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		d.Is = tgBot.Text.Admin.Settings.Reminder2
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+	} else {
+		tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{Is: tgBot.Text.Admin.Settings.Reminder2})
+	}
+	return nil
+}
+
+type ReminderSend3 struct {
+	InbuttonResponser
+	But keyboard.InKeyboard
+}
+
+func (r *ReminderSend3) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Choosen..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *ReminderSend3) Action(u *tg.Update) error {
+	text := ""
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		text = d.RemindText
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	rooms, err := tgBot.DB.Room.Read(database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
+	for _, room := range rooms {
+		msg := tg.NewMessage(int64(room.IdTgTenant), text)
+		if _, err := tgBot.API.GetChat(tg.ChatInfoConfig{ChatConfig: tg.ChatConfig{ChatID: int64(room.IdTgTenant)}}); err == nil {
+			if _, err := tgBot.API.Send(msg); err != nil {
+				return err
+			}
+		}
+	}
+
+	return tgBot.API.SendText(u, "✅Напоминания отправлены успешно.")
 }
 
 type RemoveRoom3 struct{ InbuttonResponser }
@@ -788,9 +849,13 @@ func (r *ShowScorer33) Action(u *tg.Update) error {
 	if err != nil {
 		return err
 	}
-	flag := len(scorers) > MAX_SHOW_SCORER
+	if len(scorers) == 0 {
+		return tgBot.API.SendText(u, "Пользователь пока ничего не вносил.")
+	}
+
+	flag := len(scorers) > tgBot.Text.Constants.MAX_SHOW_SCORER
 	if flag {
-		scorers = scorers[:MAX_SHOW_SCORER]
+		scorers = scorers[:tgBot.Text.Constants.MAX_SHOW_SCORER]
 	}
 
 	msg := tg.NewMessage(u.FromChat().ID, "🗝 **〈"+num+"〉**  ♨/💧\n"+getScorerTable(&scorers, flag))
@@ -861,7 +926,7 @@ func (r *ShowScorerB3) Action(u *tg.Update) error {
 	if err != nil {
 		return err
 	}
-	scorers = scorers[:MAX_SHOW_SCORER]
+	scorers = scorers[:tgBot.Text.Constants.MAX_SHOW_SCORER]
 
 	Emsg := tg.NewEditMessageTextAndMarkup(u.FromChat().ID, u.CallbackQuery.Message.MessageID, "🗝 **〈"+num+"〉**  ♨/💧\n"+getScorerTable(&scorers, true), tg.InlineKeyboardMarkup(r.But))
 	Emsg.ParseMode = tg.ModeMarkdown
@@ -871,7 +936,8 @@ func (r *ShowScorerB3) Action(u *tg.Update) error {
 
 type ShowPayment33 struct {
 	InbuttonResponser
-	But keyboard.InKeyboard
+	But    keyboard.InKeyboard
+	Prefix string
 }
 
 func (r *ShowPayment33) Callback(u *tg.Update) error {
@@ -886,7 +952,157 @@ func (r *ShowPayment33) Callback(u *tg.Update) error {
 
 func (r *ShowPayment33) Action(u *tg.Update) error {
 	num := ""
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		num = d.Number
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
 
+	payments, err := tgBot.DB.Payment.Read(database.Number(num))
+	if err != nil {
+		return err
+	}
+	if len(payments) == 0 {
+		return tgBot.API.SendText(u, "Пользователь пока ничего не вносил.")
+	}
+
+	fNum, fData := getFormatPayment(r.Prefix, &payments)
+	flag := len(fNum) > tgBot.Text.Constants.MAX_SHOW_PAYMENT
+	if flag {
+		fNum = fNum[:tgBot.Text.Constants.MAX_SHOW_PAYMENT]
+		fData = fData[:tgBot.Text.Constants.MAX_SHOW_PAYMENT]
+	}
+
+	buttons := keyboard.MakeInKeyboard(fNum, fData)
+	if flag {
+		buttons.InlineKeyboard = append(buttons.InlineKeyboard, r.But.InlineKeyboard[0])
+	}
+	msg := tg.NewMessage(u.FromChat().ID, "🗝 **〈"+num+"〉**  🧾\n")
+	msg.ReplyMarkup = buttons
+	msg.ParseMode = tg.ModeMarkdownV2
+	_, err = tgBot.API.Send(msg)
+	return err
+}
+
+type ShowPaymentN4 struct {
+	InbuttonResponser
+	But    keyboard.InKeyboard
+	Prefix string
+}
+
+func (r *ShowPaymentN4) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Showing all..."); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *ShowPaymentN4) Action(u *tg.Update) error {
+	num := ""
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		num = d.Number
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	payments, err := tgBot.DB.Payment.Read(database.Number(num))
+	if err != nil {
+		return err
+	}
+
+	buttons := keyboard.MakeInKeyboard(getFormatPayment(r.Prefix, &payments))
+	buttons.InlineKeyboard = append(buttons.InlineKeyboard, r.But.InlineKeyboard[0])
+
+	Emsg := tg.NewEditMessageTextAndMarkup(u.FromChat().ID, u.CallbackQuery.Message.MessageID, "🗝 **〈"+num+"〉**  🧾\n", tg.InlineKeyboardMarkup(buttons))
+	Emsg.ParseMode = tg.ModeMarkdownV2
+	_, err = tgBot.API.Send(Emsg)
+	return err
+}
+
+type ShowPaymentB3 struct {
+	InbuttonResponser
+	But    keyboard.InKeyboard
+	Prefix string
+}
+
+func (r *ShowPaymentB3) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Showing..."); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *ShowPaymentB3) Action(u *tg.Update) error {
+	num := ""
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		num = d.Number
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+	payments, err := tgBot.DB.Payment.Read(database.Number(num))
+	if err != nil {
+		return err
+	}
+
+	fNum, fData := getFormatPayment(r.Prefix, &payments)
+	flag := len(fNum) > tgBot.Text.Constants.MAX_SHOW_PAYMENT
+	if flag {
+		fNum = fNum[:tgBot.Text.Constants.MAX_SHOW_PAYMENT]
+		fData = fData[:tgBot.Text.Constants.MAX_SHOW_PAYMENT]
+	}
+
+	buttons := keyboard.MakeInKeyboard(fNum, fData)
+	buttons.InlineKeyboard = append(buttons.InlineKeyboard, r.But.InlineKeyboard[0])
+
+	Emsg := tg.NewEditMessageTextAndMarkup(u.FromChat().ID, u.CallbackQuery.Message.MessageID, "🗝 **〈"+num+"〉**  🧾\n", tg.InlineKeyboardMarkup(buttons))
+	Emsg.ParseMode = tg.ModeMarkdownV2
+	_, err = tgBot.API.Send(Emsg)
+	return err
+}
+
+type ShowPayment struct {
+	InbuttonResponser
+}
+
+func (r *ShowPayment) Callback(u *tg.Update) error {
+	if err := tgBot.API.AnsCallback(u, "Showing..."); err != nil {
+		return err
+	}
+	if err := tgBot.API.DelMes(u); err != nil {
+		return err
+	}
+	return r.Action(u)
+}
+
+func (r *ShowPayment) Action(u *tg.Update) error {
+	date, num := "", ""
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		date, num = d.ShowPayment, d.Number
+	} else {
+		return errors.New("gets the nil data from cache, can't do function")
+	}
+
+	payments, err := tgBot.DB.Payment.Read(database.Number(num))
+	if err != nil {
+		return err
+	}
+
+	for _, payment := range payments {
+		if date == string(payment.Date) {
+			phConfig := tg.NewPhoto(u.FromChat().ID, tg.FileBytes{Name: string(payment.PayMoment), Bytes: payment.Photo})
+			phConfig.Caption = fmt.Sprintf("Дата внесения: %s, сумма: %d₽", string(payment.PayMoment), uint(payment.Amount))
+
+			_, err = tgBot.API.Send(phConfig)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+/*func (r *ShowPayment33) Action(u *tg.Update) error {
+	num := ""
 	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
 		num = d.Number
 	} else {
@@ -914,7 +1130,7 @@ func (r *ShowPayment33) Action(u *tg.Update) error {
 		}
 	}
 	return nil
-}
+}*/
 
 type ShowTenants3 struct{ InbuttonResponser }
 
@@ -942,14 +1158,16 @@ func (r *ShowTenants3) Action(u *tg.Update) error {
 		return err
 	}
 
-	usernames := "🗝 **〈" + num + "〉**  📲\n\n"
+	usernames := "🗝 **〈" + num + "〉**  📲\n\\*Список пользователей телеграм с установленным username\n\n"
 
 	for _, room := range rooms {
-		member, err := tgBot.API.GetChatMember(tg.GetChatMemberConfig{ChatConfigWithUser: tg.ChatConfigWithUser{ChatID: int64(room.IdTgTenant), UserID: int64(room.IdTgTenant)}})
-		if err != nil {
-			return nil
+		if _, err := tgBot.API.GetChat(tg.ChatInfoConfig{ChatConfig: tg.ChatConfig{ChatID: int64(room.IdTgTenant)}}); err == nil {
+			member, err := tgBot.API.GetChatMember(tg.GetChatMemberConfig{ChatConfigWithUser: tg.ChatConfigWithUser{ChatID: int64(room.IdTgTenant), UserID: int64(room.IdTgTenant)}})
+			if err != nil {
+				return nil
+			}
+			usernames += fmt.Sprintf("[%s](tg://user?id=%d)", member.User.FirstName, member.User.ID)
 		}
-		usernames += fmt.Sprintf("[%s](tg://user?id=%d)", member.User.FirstName, member.User.ID)
 	}
 	msg := tg.NewMessage(u.FromChat().ID, usernames)
 	msg.ParseMode = tg.ModeMarkdown
@@ -1003,6 +1221,7 @@ func getScorerTable(scorers *[]database.Scorer, flag bool) string {
 	return "```\n" + scoreTable.String() + "```"
 }
 
+/*
 func getPaymentTable(payments *[]database.Payment) string {
 	paymentTable := &strings.Builder{}
 	table := tablewriter.NewWriter(paymentTable)
@@ -1030,7 +1249,7 @@ func getPaymentTable(payments *[]database.Payment) string {
 	return "```\n" + paymentTable.String() + "```"
 }
 
-/*
+
 func markImage(fotoByte []byte) tg.PhotoConfig {
 	img, _, _ := image.Decode(bytes.NewReader(fotoByte))
 

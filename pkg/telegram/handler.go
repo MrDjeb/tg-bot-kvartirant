@@ -232,17 +232,22 @@ func (h *AdminHandler) New() {
 		TA.Room.ShowScorer33:                     &ShowScorer33{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorerN4}}, [][]string{{TA.Room.ShowScorerN4}})},
 		TA.Room.ShowScorerN4:                     &ShowScorerN4{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorerB3}}, [][]string{{TA.Room.ShowScorerB3}})},
 		TA.Room.ShowScorerB3:                     &ShowScorerB3{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowScorerN4}}, [][]string{{TA.Room.ShowScorerN4}})},
-		TA.Room.ShowPayment33:                    &ShowPayment33{},
+		TA.Room.ShowPayment33:                    &ShowPayment33{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowPaymentN4}}, [][]string{{TA.Room.ShowPaymentN4}}), Prefix: TA.Room.Payment_prefix},
+		TA.Room.ShowPaymentN4:                    &ShowPaymentN4{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowPaymentB3}}, [][]string{{TA.Room.ShowPaymentB3}}), Prefix: TA.Room.Payment_prefix},
+		TA.Room.ShowPaymentB3:                    &ShowPaymentB3{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowPaymentN4}}, [][]string{{TA.Room.ShowPaymentN4}}), Prefix: TA.Room.Payment_prefix},
+		TA.Room.Payment_prefix:                   &ShowPayment{},
 		TA.Room.ShowTenants3:                     &ShowTenants3{},
 		TA.Settings.Edit2:                        &Edit2{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.Edit.AddRoom3, TA.Settings.Edit.RemoveRoom3}, {TC.BackBut}}, [][]string{{TA.Settings.Edit.AddRoom3, TA.Settings.Edit.RemoveRoom3}, {Edit2BackBut}})},
-		TA.Settings.Reminder2:                    &Reminder2{},
 		TA.Settings.Edit.RemoveRoom3:             &RemoveRoom3{},
 		TA.Settings.Edit.Removing4:               &Removing4{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.Edit.Removing.ConfirmRemove5}, {TC.BackBut}}, [][]string{{TA.Settings.Edit.Removing.ConfirmRemove5}, {Removing4BackBut}})},
 		TA.Settings.Edit.Removing.ConfirmRemove5: &ConfirmRemove5{},
+		TA.Settings.ReminderSend3:                &ReminderSend3{},
 	}
 	h.Inp = map[string]InputResponser{
 		TA.Settings.Contacts2:     &Contacts2{},
 		TA.Settings.Edit.AddRoom3: &AddRoom3{},
+		TA.Settings.Reminder2:     &Reminder2{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.ReminderSend3, TA.Settings.ReminderEdit3}}, [][]string{{TA.Settings.ReminderSend3, TA.Settings.ReminderEdit3}})},
+		TA.Settings.ReminderEdit3: &ReminderEdit3{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.ReminderSend3, TA.Settings.ReminderEdit3}}, [][]string{{TA.Settings.ReminderSend3, TA.Settings.ReminderEdit3}})},
 	}
 	h.Bck = map[string]BackResponser{
 		Edit2BackBut:       NewBackResponser(TA.Settings1),
@@ -263,23 +268,55 @@ func (h *AdminHandler) Callback(u *tg.Update) error {
 		return inb.Callback(u)
 	}
 
-	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
-		num := u.CallbackQuery.Data[strings.Index(u.CallbackQuery.Data, keyboard.DEL)+1:]
-		if isRoom(num, d.Rooms) {
-			prefix := u.CallbackQuery.Data[:strings.Index(u.CallbackQuery.Data, keyboard.DEL)]
+	if strings.Contains(u.CallbackQuery.Data, keyboard.DEL) {
+		prefix, suffix := strings.Split(u.CallbackQuery.Data, keyboard.DEL)[0], strings.Split(u.CallbackQuery.Data, keyboard.DEL)[1]
+		if inb, ok := h.Inb[prefix]; ok {
 
-			if inb, ok := h.Inb[prefix]; ok {
-				switch prefix {
-				case tgBot.Text.Admin.Room2:
-					d.Number = num
-				case tgBot.Text.Admin.Settings.Edit.Removing4:
-					d.NumberDel = num
+			switch prefix {
+			case tgBot.Text.Admin.Room2:
+				if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+					d.Number = suffix
+					tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+				} else {
+					tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{Number: suffix})
 				}
-				tgBot.Admin.Cache.Put(u.FromChat().ID, d)
-				return inb.Callback(u)
+			case tgBot.Text.Admin.Settings.Edit.Removing4:
+				if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+					d.NumberDel = suffix
+					tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+				} else {
+					tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{NumberDel: suffix})
+				}
+			case tgBot.Text.Admin.Room.Payment_prefix:
+				if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+					d.ShowPayment = suffix
+					tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+				} else {
+					tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{ShowPayment: suffix})
+				}
 			}
+			return inb.Callback(u)
 		}
 	}
+
+	/*
+		if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+			num := u.CallbackQuery.Data[strings.Index(u.CallbackQuery.Data, keyboard.DEL)+1:]
+			if isRoom(num, d.Rooms) {
+				prefix := u.CallbackQuery.Data[:strings.Index(u.CallbackQuery.Data, keyboard.DEL)]
+
+				if inb, ok := h.Inb[prefix]; ok {
+					switch prefix {
+					case tgBot.Text.Admin.Room2:
+						d.Number = num
+					case tgBot.Text.Admin.Settings.Edit.Removing4:
+						d.NumberDel = num
+					}
+					tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+					return inb.Callback(u)
+				}
+			}
+		}*/
 
 	return h.Mes[tgBot.Text.CommonCommand.Unknown].Action(u)
 }
@@ -322,14 +359,14 @@ func getRooms(idTg int64) ([]string, error) {
 	return numbers, nil
 }
 
-func isRoom(number string, numbers []string) bool {
+/*func isRoom(number string, numbers []string) bool {
 	for _, num := range numbers {
 		if num == number {
 			return true
 		}
 	}
 	return false
-}
+}*/
 
 func NewBackResponser(t string) BackResponser {
 	return func(u *tg.Update) error {

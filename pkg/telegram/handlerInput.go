@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -70,6 +71,30 @@ func getFormatCalendar(prefix string) (fNum [][]string, fData [][]string) {
 			k++
 		}
 	}
+	return fNum, fData
+}
+
+func getFormatPayment(prefix string, payments *[]database.Payment) (fNum [][]string, fData [][]string) {
+	m := make(map[string]int)
+	for _, payment := range *payments {
+		m[string(payment.Date)] = 0
+	}
+	for _, payment := range *payments {
+		m[string(payment.Date)]++
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+
+	fNum, fData = make([][]string, len(m)), make([][]string, len(m))
+	for i, k := range keys {
+		fNum[i], fData[i] = make([]string, 1), make([]string, 1)
+		fNum[i][0] = fmt.Sprintf("`%s x%d`", k, m[k])
+		fData[i][0] = prefix + keyboard.DEL + k
+	}
+
 	return fNum, fData
 }
 
@@ -432,5 +457,21 @@ func (r *AddRoom3) HandleInput(u *tg.Update) error {
 	if err := tgBot.API.SendText(u, fmt.Sprintf("Добавлено ожидание пользователя для квартиры под номером: %s\n%s", tidyStr, link)); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (r *Reminder2) HandleInput(u *tg.Update) error {
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf("Данное сообщение будет разослано: {->\n\n%s\n\n<-}", u.Message.Text))
+	msg.ReplyMarkup = r.But
+	tgBot.API.Send(msg)
+
+	d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID)
+	if !ok {
+		return tgBot.API.SendText(u, tgBot.Text.Response.Cache_ttl)
+	}
+	d.Is = ""
+	d.RemindText = u.Message.Text
+	tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+
 	return nil
 }
