@@ -1166,7 +1166,7 @@ func (r *ShowTenants3) Action(u *tg.Update) error {
 			if err != nil {
 				return nil
 			}
-			usernames += fmt.Sprintf("‣	[%s](tg://user?id=%d\n)", member.User.FirstName, member.User.ID)
+			usernames += fmt.Sprintf("‣ [%s](tg://user?id=%d\n)", member.User.FirstName, member.User.ID)
 		}
 	}
 	msg := tg.NewMessage(u.FromChat().ID, usernames)
