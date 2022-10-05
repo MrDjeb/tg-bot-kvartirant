@@ -6,60 +6,79 @@ on:
       - main
 
 env:
-  REGISTRY: "crpp6o1a47k42ls7uslj"
-  IMAGE_NAME: "tg-bot-kvartirant"
-  CONTAINER_NAME: "kvartirant"
+  REGISTRY: "mrdjeb"
+  IMAGE_NAME: "vk"
+  CONTAINER_NAME: "UPLOADer"
+
 
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout master
+      - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
         with:
-          fetch-depth: 1
-      - run: git checkout HEAD
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build container image
-        run: docker build -t cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7) .
+      - name: Set env
+        run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | head -c 8)" >> $GITHUB_ENV
 
-      - name: Log in to Yandex Cloud Container Registry with OAuth token
-        run: echo ${{ secrets.YANDEXCLOUD_OAUTH_TOKEN }} | docker login --username oauth --password-stdin cr.yandex
-
-      - name: Push image to Yandex Cloud Container Registry
-        run: docker push cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
-
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.GITHUB_SHA_SHORT }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          platforms: linux/arm64/v8
+          build-args: |
+              IMAGE_NAME=${{ env.IMAGE_NAME }}
+              REGISTRY=${{ env.REGISTRY }}
+              GITHUB_SHA_SHORT=${{ env.GITHUB_SHA_SHORT }}
+              
   deploy:
     runs-on: ubuntu-latest
     needs: build_and_push
 
     steps:
-      - name: Deploy to Yandex Cloud via SSH action
-        uses: appleboy/ssh-action@v0.1.4
+      - name: Set params
+        id: vars
+        run: |
+          echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | head -c 8)" >> $GITHUB_ENV
+          echo ::set-output name=ngrok_host::$(curl -H "Authorization: Bearer ${{ secrets.NGROK_TOKEN }}" -H "Ngrok-Version: 2" \
+          https://api.ngrok.com/tunnels | jq '.tunnels[] | select(.proto == "tcp") | .public_url' | sed 's/"//g' | cut -d: -f2 | cut -c 3-)
+          echo ::set-output name=ngrok_port::$(curl -H "Authorization: Bearer ${{ secrets.NGROK_TOKEN }}" -H "Ngrok-Version: 2" \
+          https://api.ngrok.com/tunnels | jq '.tunnels[] | select(.proto == "tcp") | .public_url' | sed 's/"//g' | cut -d: -f3)
+      - name: Deploy to DockerHub via SSH action
+        uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST }}
+          host: ${{ steps.vars.outputs.ngrok_host }}
+          port: ${{ steps.vars.outputs.ngrok_port }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSHKEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }} 
-          envs: REGISTRY, IMAGE_NAME, CONTAINER_NAME, GITHUB_SHA, 
+          envs: REGISTRY, IMAGE_NAME, CONTAINER_NAME, GITHUB_SHA_SHORT, 
           script: |
             # Set env variables
-            export TG_TOKEN=${{ secrets.TG_TOKEN }}
-            export ACCESS_SECRET=${{ secrets.ACCESS_SECRET }}
-            export GODMODE_SECRET=${{ secrets.GODMODE_SECRET }}
-
-            # Log in to Yandex Cloud Container Registry with OAuth token
-            echo ${{ secrets.YANDEXCLOUD_OAUTH_TOKEN }} | docker login --username oauth --password-stdin cr.yandex
-
+            export TG_TOKEN=${{ secrets.TOKEN }}
+            export MY_ID=${{ secrets.MY_ID }}
+            # Log in to DockerHub
+            echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
             # Stop running containers & Remove old containers
             docker ps -q --filter "name=$CONTAINER_NAME" | grep -q . && \
             docker stop $CONTAINER_NAME && \
-            docker rm -fv $CONTAINER_NAME
-
-            # Pull image from Yandex Cloud Container Registry
-            docker pull cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
+            docker rm -f $CONTAINER_NAME
+            # Pull image DockerHub
+            docker pull $REGISTRY/$IMAGE_NAME:$GITHUB_SHA_SHORT
             # Run a new container from a new image
-            docker run -e TG_TOKEN -e ACCESS_SECRET -e GODMODE_SECRET -d -v kvartirant-db:/root/sqlite \
+            docker run -e TG_TOKEN -e MY_ID -d -v $CONTAINER_NAME-db:/docker-vk/sqlite \
             --restart always --publish 80:80 --name $CONTAINER_NAME \
-            cr.yandex/$(echo $REGISTRY)/$(echo $IMAGE_NAME):$(echo $GITHUB_SHA | head -c7)
+            $REGISTRY/$IMAGE_NAME:$GITHUB_SHA_SHORT
