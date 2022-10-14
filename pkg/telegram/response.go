@@ -42,12 +42,12 @@ func (r *UnknownStart) Action(u *tg.Update) error {
 	delete(d.AddingRooms, token)
 	tgBot.Admin.Cache.Put(idAdmin, d)
 
-	room := database.Room{
+	room := &database.Room{
 		IdTgAdmin:  database.TelegramID(idAdmin),
 		IdTgTenant: database.TelegramID(u.FromChat().ID),
 		Number:     database.Number(number),
 	}
-	if err := tgBot.DB.Room.Insert(room); err != nil {
+	if err := tgBot.DB.Room.Insert(*room); err != nil {
 		return err
 	}
 
@@ -57,8 +57,7 @@ func (r *UnknownStart) Action(u *tg.Update) error {
 		return err
 	}
 
-	tenant := database.Tenant{IdTg: database.TelegramID(u.FromChat().ID)}
-	if err := tgBot.DB.Tenant.Insert(tenant); err != nil {
+	if err := tgBot.DB.Tenant.Insert(database.Tenant{IdTg: database.TelegramID(u.FromChat().ID)}); err != nil {
 		return err
 	}
 
@@ -505,23 +504,16 @@ type Rooms1 struct {
 func (r *Rooms1) Action(u *tg.Update) error {
 	msg := tg.NewMessage(u.FromChat().ID, tgBot.Text.Response.Rooms1_list)
 
-	numbers, err := getRooms(u.FromChat().ID)
+	fNum, fData, err := getFormatRooms(u.FromChat().ID, tgBot.Text.Admin.Room2)
 	if err != nil {
 		return err
 	}
 
-	if len(numbers) == 0 {
+	if len(fData) == 0 {
 		return tgBot.API.SendText(u, tgBot.Text.Response.Rooms1_nil)
 	}
 
-	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
-		d.Rooms = numbers
-		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
-	} else {
-		tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{Rooms: numbers})
-	}
-
-	msg.ReplyMarkup = keyboard.MakeInKeyboard(keyboard.FormatNumbers(numbers, tgBot.Text.Admin.Room2))
+	msg.ReplyMarkup = keyboard.MakeInKeyboard(fNum, fData)
 	_, err = tgBot.API.Send(msg)
 	return err
 }
@@ -737,27 +729,19 @@ func (r *RemoveRoom3) Callback(u *tg.Update) error {
 }
 
 func (r *RemoveRoom3) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "❌Выберите какую комнату удалить➩\n🏠Список квартирантов⋮ ")
+	msg := tg.NewMessage(u.FromChat().ID, "❌Выберите какую комнату удалить➩\n")
 
-	numbers, err := getRooms(u.FromChat().ID)
+	fNum, fData, err := getFormatRooms(u.FromChat().ID, tgBot.Text.Admin.Settings.Edit.Removing4)
 	if err != nil {
 		return err
 	}
 
-	if len(numbers) == 0 {
-		return tgBot.API.SendText(u, "⦰Список комнат пуст.")
+	if len(fData) == 0 {
+		return tgBot.API.SendText(u, tgBot.Text.Response.Rooms1_nil)
 	}
 
-	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
-		d.RoomsDel = numbers
-		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
-	} else {
-		tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{Rooms: numbers})
-	}
-
-	names, data := keyboard.FormatNumbers(numbers, tgBot.Text.Admin.Settings.Edit.Removing4)
-	names, data = append(names, []string{tgBot.Text.CommonCommand.BackBut}), append(data, []string{RemoveRoom3BackBut})
-	msg.ReplyMarkup = keyboard.MakeInKeyboard(names, data)
+	fNum, fData = append(fNum, []string{tgBot.Text.CommonCommand.BackBut}), append(fData, []string{RemoveRoom3BackBut})
+	msg.ReplyMarkup = keyboard.MakeInKeyboard(fNum, fData)
 	_, err = tgBot.API.Send(msg)
 	return err
 }
@@ -1154,6 +1138,7 @@ func (r *ShowTenants3) Action(u *tg.Update) error {
 	}
 
 	rooms, err := tgBot.DB.Room.ReadRooms(database.Number(num))
+	fmt.Println(rooms)
 	if err != nil {
 		return err
 	}
@@ -1166,7 +1151,9 @@ func (r *ShowTenants3) Action(u *tg.Update) error {
 			if err != nil {
 				return nil
 			}
-			usernames += fmt.Sprintf("‣ [%s](tg://user?id=%d\n)", member.User.FirstName, member.User.ID)
+			usernames += fmt.Sprintf("‣ [%s](tg://user?id=%d) \n", member.User.FirstName, member.User.ID)
+		} else {
+			usernames += fmt.Sprintf("‣ (tg:ID)    %d \n", room.IdTgTenant)
 		}
 	}
 	msg := tg.NewMessage(u.FromChat().ID, usernames)

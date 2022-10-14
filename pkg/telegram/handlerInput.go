@@ -424,22 +424,42 @@ func (b *Contacts2) HandleInput(u *tg.Update) error {
 		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
 	}
 
+	//IDs, err := tgBot.DB.Room.ReadAdmins() implement that one room can have more then one admin
+
 	tgBot.DB.Admin.Update(database.Admin{IdTgAdmin: database.TelegramID(u.FromChat().ID), Repairer: tidyStr})
 
 	return tgBot.API.SendText(u, fmt.Sprintf("Добавлен ремонтник %s", tidyStr))
 }
 
 func (r *AddRoom3) HandleInput(u *tg.Update) error {
-
-	tidyStr := strings.TrimSpace(u.Message.Text)
-	number := tidyStr
+	number := strings.TrimSpace(u.Message.Text)
 	if len(number) > 32 {
-		if err := tgBot.API.SendText(u, "Длина номера должна быть меньше 32 символов."); err != nil {
+		return tgBot.API.SendText(u, "Длина номера должна быть меньше 32 символов.")
+	}
+
+	IsExistRoom, err := tgBot.DB.Room.IsExistRoom(database.Number(number), database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
+	if IsExistRoom {
+		return tgBot.API.SendText(u, "Данный номер комнаты занят. Пожалуйста придумайте другой:")
+	}
+
+	IsExist, err := tgBot.DB.Room.IsExist(database.Number(number), database.TelegramID(u.FromChat().ID))
+	if err != nil {
+		return err
+	}
+	if IsExist {
+		if err := tgBot.API.SendText(u, "Новый квартирант будет привязан к указанной существуеющей комнате"); err != nil {
 			return err
 		}
-		return nil //error broken
+	} else {
+		if err := tgBot.API.SendText(u, "Создана комната с указанным номером."); err != nil {
+			return err
+		}
 	}
-	dataToken := TokenFromNum(tidyStr, u.FromChat().ID)
+
+	dataToken := TokenFromNum(number, u.FromChat().ID)
 
 	d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID)
 	if !ok {
@@ -449,12 +469,12 @@ func (r *AddRoom3) HandleInput(u *tg.Update) error {
 	if d.AddingRooms == nil {
 		d.AddingRooms = make(map[string]string)
 	}
-	d.AddingRooms[dataToken] = tidyStr
+	d.AddingRooms[dataToken] = number
 	d.Is = ""
 	tgBot.Admin.Cache.Put(u.FromChat().ID, d)
 
 	link := fmt.Sprintf(DEEPLINK, tgBot.API.Self.UserName, base64.StdEncoding.EncodeToString([]byte(dataToken)))
-	if err := tgBot.API.SendText(u, fmt.Sprintf("Добавлено ожидание пользователя для квартиры под номером: %s\n%s", tidyStr, link)); err != nil {
+	if err := tgBot.API.SendText(u, fmt.Sprintf("Добавлено ожидание пользователя для комнаты под номером: %s\n%s", number, link)); err != nil {
 		return err
 	}
 	return nil

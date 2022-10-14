@@ -240,8 +240,18 @@ func (r *DBAdmin) Migrate() error {
 		repairer TEXT
     );`
 	logDB.Println(query)
-
 	_, err := r.DB.Exec(query)
+	/*if err != nil { //implement updated_at timestamp to table colums
+			return err
+		}
+
+		query = `
+	    CREATE TABLE admin(
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		  );`
+		logDB.Println(query)
+		_, err = r.DB.Exec(query)
+	*/
 	return err
 }
 
@@ -349,6 +359,28 @@ func (r *DBRoom) Delete(num Number) error {
 	return err
 }
 
+func (r *DBRoom) IsExistRoom(num Number, tgid TelegramID) (bool, error) {
+	logDB.Println("SELECT * FROM room WHERE (number = ? AND idAdmin != ?);", num, tgid)
+
+	rows, err := r.DB.Query("SELECT * FROM room WHERE (number = ? AND idAdmin != ?);", num, tgid)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	return rows.Next(), nil
+}
+
+func (r *DBRoom) IsExist(num Number, tgid TelegramID) (bool, error) {
+	logDB.Println("SELECT * FROM room WHERE (number = ? AND idAdmin = ?);", num, tgid)
+
+	rows, err := r.DB.Query("SELECT * FROM room WHERE (number = ? AND idAdmin = ?);", num, tgid)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	return rows.Next(), nil
+}
+
 func (r *DBRoom) Read(tgid TelegramID) ([]Room, error) {
 	logDB.Println("SELECT * FROM room WHERE idAdmin = ?;", tgid)
 
@@ -385,6 +417,25 @@ func (r *DBRoom) ReadRooms(num Number) ([]Room, error) {
 		rooms = append(rooms, p)
 	}
 	return rooms, nil
+}
+
+func (r *DBRoom) ReadAdmins(num Number) ([]TelegramID, error) {
+	logDB.Println("SELECT idAdmin FROM room WHERE number = ?;", num)
+
+	rows, err := r.DB.Query("SELECT idAdmin FROM room WHERE number = ?;", num)
+	if err != nil {
+		return []TelegramID{}, err
+	}
+	defer rows.Close()
+	var IDs []TelegramID
+	for rows.Next() {
+		var id TelegramID
+		if err := rows.Scan(&id); err != nil {
+			return []TelegramID{}, err
+		}
+		IDs = append(IDs, id)
+	}
+	return IDs, nil
 }
 
 func (r *DBRoom) GetRoom(tgid TelegramID) (Number, error) {

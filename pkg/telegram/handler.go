@@ -347,16 +347,18 @@ func (h *AdminHandler) Message(u *tg.Update) error {
 	return h.Mes[tgBot.Text.CommonCommand.Unknown].Action(u)
 }
 
-func getRooms(idTg int64) ([]string, error) {
+func getFormatRooms(idTg int64, prefix string) (fNum [][]string, fData [][]string, err error) {
 	rooms, err := tgBot.DB.Room.Read(database.TelegramID(idTg))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	var numbers []string
+
+	mapNumbers := make(map[string]int)
 	for _, room := range rooms {
-		numbers = append(numbers, string(room.Number))
+		mapNumbers[string(room.Number)]++
 	}
-	return numbers, nil
+	fNum, fData = keyboard.FormatNumbers(mapNumbers, prefix)
+	return fNum, fData, nil
 }
 
 /*func isRoom(number string, numbers []string) bool {

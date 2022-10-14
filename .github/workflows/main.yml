@@ -7,8 +7,8 @@ on:
 
 env:
   REGISTRY: "mrdjeb"
-  IMAGE_NAME: "vk"
-  CONTAINER_NAME: "UPLOADer"
+  IMAGE_NAME: "tg-bot-kvartirant"
+  CONTAINER_NAME: "kvartirant"
 
 
 jobs:
@@ -79,6 +79,7 @@ jobs:
             # Pull image DockerHub
             docker pull $REGISTRY/$IMAGE_NAME:$GITHUB_SHA_SHORT
             # Run a new container from a new image
-            docker run -e TG_TOKEN -e MY_ID -d -v $CONTAINER_NAME-db:/docker-vk/sqlite \
+            docker run docker run -e TG_TOKEN -e ACCESS_SECRET -e GODMODE_SECRET\
+             -d -v $CONTAINER_NAME-db:/docker-tg-bot/sqlite \
             --restart always --publish 80:80 --name $CONTAINER_NAME \
             $REGISTRY/$IMAGE_NAME:$GITHUB_SHA_SHORT

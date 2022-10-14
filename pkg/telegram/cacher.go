@@ -29,8 +29,6 @@ func (s *TenantData) Erase() {
 type AdminData struct {
 	Is          string
 	AddingRooms map[string]string
-	Rooms       []string
-	RoomsDel    []string
 	Number      string
 	NumberDel   string
 	ShowPayment string

@@ -1,6 +1,8 @@
 package keyboard
 
 import (
+	"strconv"
+
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -44,35 +46,27 @@ func MakeInKeyboard(names [][]string, data [][]string) InKeyboard {
 	return InKeyboard(tg.NewInlineKeyboardMarkup(buttons...))
 }
 
-func FormatNumbers(numbers []string, prefix string) (fNum [][]string, fData [][]string) {
-	if (len(numbers)-1)/4 > 0 {
-		fNum = make([][]string, (len(numbers)-1)/4)
+func FormatNumbers(mapNum map[string]int, prefix string) (fNum [][]string, fData [][]string) {
+	n := len(mapNum)
+	if (n-1)/4 > 0 {
+		fNum = make([][]string, (n-1)/4)
+		fData = make([][]string, (n-1)/4)
 		for i := range fNum {
 			fNum[i] = make([]string, 4)
-		}
-		fNum = append(fNum, make([]string, len(numbers)%4))
-	} else {
-		fNum = [][]string{numbers}
-	}
-
-	for i, num := range numbers {
-		//fmt.Printf("%d | %d  %s\n", i/4, i%4, num)
-		fNum[i/4][i%4] = num
-	}
-
-	if (len(numbers)-1)/4 > 0 {
-		fData = make([][]string, (len(numbers)-1)/4)
-		for i := range fData {
 			fData[i] = make([]string, 4)
 		}
-		fData = append(fData, make([]string, len(numbers)%4))
+		fNum = append(fNum, make([]string, n%4))
+		fData = append(fData, make([]string, n%4))
 	} else {
-		fData = append(fData, make([]string, len(numbers)))
+		fNum = append(fNum, make([]string, n))
+		fData = append(fData, make([]string, n))
 	}
-	for i := 0; i < len(fData); i++ {
-		for j := 0; j < len(fData[i]); j++ {
-			fData[i][j] = prefix + DEL + fNum[i][j]
-		}
+
+	i := 0
+	for k, v := range mapNum {
+		fNum[i/4][i%4] = k + "✖" + strconv.Itoa(v)
+		fData[i/4][i%4] = prefix + DEL + k
+		i++
 	}
 
 	return fNum, fData
