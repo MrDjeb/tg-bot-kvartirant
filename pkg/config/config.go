@@ -102,6 +102,7 @@ type Room struct {
 	ShowPaymentN4  string `mapstructure:"show_paymentN4"`
 	ShowPaymentB3  string `mapstructure:"show_paymentB3"`
 	ShowTenants3   string `mapstructure:"show_tenants3"`
+	RemoveTenants4 string `mapstructure:"remove_tenants4"`
 }
 
 type Settings struct {

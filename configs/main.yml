@@ -26,6 +26,7 @@ text:
         show_paymentN4: "Все...."
         show_paymentB3: "Меньше...."
         show_tenants3: "Квартиранты"
+        remove_tenants4: "Удалить квартиранта"
       settings1: "Настройки"
       settings:
         edit2: "Добавить/удалить квартиру"

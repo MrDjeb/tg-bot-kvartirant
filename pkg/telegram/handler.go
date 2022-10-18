@@ -236,7 +236,7 @@ func (h *AdminHandler) New() {
 		TA.Room.ShowPaymentN4:                    &ShowPaymentN4{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowPaymentB3}}, [][]string{{TA.Room.ShowPaymentB3}}), Prefix: TA.Room.Payment_prefix},
 		TA.Room.ShowPaymentB3:                    &ShowPaymentB3{But: keyboard.MakeInKeyboard([][]string{{TA.Room.ShowPaymentN4}}, [][]string{{TA.Room.ShowPaymentN4}}), Prefix: TA.Room.Payment_prefix},
 		TA.Room.Payment_prefix:                   &ShowPayment{},
-		TA.Room.ShowTenants3:                     &ShowTenants3{},
+		TA.Room.ShowTenants3:                     &ShowTenants3{But: keyboard.MakeInKeyboard([][]string{{TA.Room.RemoveTenants4}}, [][]string{{TA.Room.RemoveTenants4}})},
 		TA.Settings.Edit2:                        &Edit2{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.Edit.AddRoom3, TA.Settings.Edit.RemoveRoom3}, {TC.BackBut}}, [][]string{{TA.Settings.Edit.AddRoom3, TA.Settings.Edit.RemoveRoom3}, {Edit2BackBut}})},
 		TA.Settings.Edit.RemoveRoom3:             &RemoveRoom3{},
 		TA.Settings.Edit.Removing4:               &Removing4{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.Edit.Removing.ConfirmRemove5}, {TC.BackBut}}, [][]string{{TA.Settings.Edit.Removing.ConfirmRemove5}, {Removing4BackBut}})},
@@ -248,6 +248,7 @@ func (h *AdminHandler) New() {
 		TA.Settings.Edit.AddRoom3: &AddRoom3{},
 		TA.Settings.Reminder2:     &Reminder2{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.ReminderSend3, TA.Settings.ReminderEdit3}}, [][]string{{TA.Settings.ReminderSend3, TA.Settings.ReminderEdit3}})},
 		TA.Settings.ReminderEdit3: &ReminderEdit3{But: keyboard.MakeInKeyboard([][]string{{TA.Settings.ReminderSend3, TA.Settings.ReminderEdit3}}, [][]string{{TA.Settings.ReminderSend3, TA.Settings.ReminderEdit3}})},
+		TA.Room.RemoveTenants4:    &RemoveTenants4{},
 	}
 	h.Bck = map[string]BackResponser{
 		Edit2BackBut:       NewBackResponser(TA.Settings1),

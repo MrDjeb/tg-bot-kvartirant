@@ -1116,7 +1116,10 @@ func (r *ShowPayment) Action(u *tg.Update) error {
 	return nil
 }*/
 
-type ShowTenants3 struct{ InbuttonResponser }
+type ShowTenants3 struct {
+	InbuttonResponser
+	But keyboard.InKeyboard
+}
 
 func (r *ShowTenants3) Callback(u *tg.Update) error {
 	if err := tgBot.API.AnsCallback(u, "Showing tenants info..."); err != nil {
@@ -1143,7 +1146,7 @@ func (r *ShowTenants3) Action(u *tg.Update) error {
 		return err
 	}
 
-	usernames := "🗝 **〈" + num + "〉**  📲\n\\*Список пользователей телеграм с установленным username\n\n"
+	usernames := "🗝 **〈" + num + "〉**  📲\n\n⇣Список пользователей телеграм с установленным username\n\n"
 
 	for _, room := range rooms {
 		if _, err := tgBot.API.GetChat(tg.ChatInfoConfig{ChatConfig: tg.ChatConfig{ChatID: int64(room.IdTgTenant)}}); err == nil {
@@ -1151,15 +1154,47 @@ func (r *ShowTenants3) Action(u *tg.Update) error {
 			if err != nil {
 				return nil
 			}
-			usernames += fmt.Sprintf("‣ [%s](tg://user?id=%d) \n", member.User.FirstName, member.User.ID)
+			usernames += fmt.Sprintf("‣ [%s](tg://user?id=%d)    `%d`\n", member.User.FirstName, member.User.ID, room.IdTgTenant)
 		} else {
-			usernames += fmt.Sprintf("‣ (tg:ID)    %d \n", room.IdTgTenant)
+			usernames += fmt.Sprintf("‣ (tg:ID)    `%d`\n", room.IdTgTenant)
 		}
 	}
 	msg := tg.NewMessage(u.FromChat().ID, usernames)
 	msg.ParseMode = tg.ModeMarkdown
+	msg.ReplyMarkup = r.But
 	_, err = tgBot.API.Send(msg)
 	return err
+}
+
+type RemoveTenants4 struct{ InputResponser }
+
+func (r *RemoveTenants4) Callback(u *tg.Update) error { /////////////////////////neeed
+
+	if err := tgBot.API.AnsCallback(u, "Sending message."); err != nil {
+		return err
+	}
+
+	/*txt := string(u.CallbackQuery.Message.Text) + "\n\n _Скопируйте и введите (tg:ID) нужного квартиранта:_"
+
+	Emsg := tg.NewEditMessageText(u.FromChat().ID, u.CallbackQuery.Message.MessageID, txt)
+	Emsg.ParseMode = tg.ModeMarkdown*/
+	Emsg := tg.NewEditMessageReplyMarkup(u.FromChat().ID, u.CallbackQuery.Message.MessageID, tg.InlineKeyboardMarkup{InlineKeyboard: make([][]tg.InlineKeyboardButton, 0)})
+	if _, err := tgBot.API.Send(Emsg); err != nil {
+		return err
+	}
+	msg := tg.NewMessage(u.FromChat().ID, "\n\n _Скопируйте и введите (tg:ID) нужного квартиранта:_")
+	msg.ParseMode = tg.ModeMarkdown
+	if _, err := tgBot.API.Send(msg); err != nil {
+		return err
+	}
+
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		d.Is = tgBot.Text.Admin.Room.RemoveTenants4
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+	} else {
+		tgBot.Admin.Cache.Put(u.FromChat().ID, AdminData{Is: tgBot.Text.Admin.Room.RemoveTenants4})
+	}
+	return nil
 }
 
 func DeleteRoom(num database.Number) error {
@@ -1182,6 +1217,25 @@ func DeleteRoom(num database.Number) error {
 		return err
 	}
 	return err
+}
+
+func DeleteTenant(tgid database.TelegramID) error {
+	num, err := tgBot.DB.Room.GetRoom(tgid)
+	if err != nil {
+		return err
+	}
+
+	rooms, err := tgBot.DB.Room.ReadRooms(database.Number(num))
+	if err != nil {
+		return err
+	}
+	if len(rooms) == 1 {
+		return DeleteRoom(num)
+	}
+	if err := tgBot.DB.Room.DeleteTenant(tgid); err != nil {
+		return err
+	}
+	return tgBot.DB.Tenant.Delete(tgid)
 }
 
 func getScorerTable(scorers *[]database.Scorer, flag bool) string {

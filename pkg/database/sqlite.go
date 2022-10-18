@@ -359,6 +359,26 @@ func (r *DBRoom) Delete(num Number) error {
 	return err
 }
 
+func (r *DBRoom) DeleteTenant(tgid TelegramID) error {
+	logDB.Println("DELETE FROM room WHERE idTenant = ?", tgid)
+
+	res, err := r.DB.Exec("DELETE FROM room WHERE idTenant = ?", tgid)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrDeleteFailed
+	}
+
+	return err
+}
+
 func (r *DBRoom) IsExistRoom(num Number, tgid TelegramID) (bool, error) {
 	logDB.Println("SELECT * FROM room WHERE (number = ? AND idAdmin != ?);", num, tgid)
 

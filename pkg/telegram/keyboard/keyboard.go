@@ -1,7 +1,7 @@
 package keyboard
 
 import (
-	"strconv"
+	"fmt"
 
 	tg "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -64,7 +64,7 @@ func FormatNumbers(mapNum map[string]int, prefix string) (fNum [][]string, fData
 
 	i := 0
 	for k, v := range mapNum {
-		fNum[i/4][i%4] = k + "✖" + strconv.Itoa(v)
+		fNum[i/4][i%4] = fmt.Sprintf("%s✖%d", k, v)
 		fData[i/4][i%4] = prefix + DEL + k
 		i++
 	}

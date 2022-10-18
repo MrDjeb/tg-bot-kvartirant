@@ -495,3 +495,32 @@ func (r *Reminder2) HandleInput(u *tg.Update) error {
 
 	return nil
 }
+
+func (b *RemoveTenants4) HandleInput(u *tg.Update) error {
+
+	tidyStr := strings.TrimSpace(u.Message.Text)
+	IdTg, err := strconv.Atoi(tidyStr)
+	if len(tidyStr) > 11 || err != nil {
+		if err := tgBot.API.SendText(u, "Данный Telegram ID пользователя некорректен.\nСкопируйте ID и введите ещё раз:"); err != nil {
+			return err
+		}
+		return nil //error broken
+	}
+
+	if _, err := tgBot.API.GetChat(tg.ChatInfoConfig{ChatConfig: tg.ChatConfig{ChatID: int64(IdTg)}}); err != nil {
+		if err := tgBot.API.SendText(u, "Данный Telegram ID некорректен или не привязан к боту.\nСкопируйте ID и введите ещё раз:"); err != nil {
+			return err
+		}
+		return nil //error broken
+	}
+
+	if d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(u.FromChat().ID); ok {
+		d.Is = ""
+		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
+	}
+	if err := DeleteTenant(database.TelegramID(IdTg)); err != nil {
+		return err
+	}
+
+	return tgBot.API.SendText(u, fmt.Sprintf("Удалён квартирант с ID: %d", IdTg))
+}
