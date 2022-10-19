@@ -65,6 +65,13 @@ func (a API) SendText(u *tg.Update, text string) error {
 	return err
 }
 
+func (a API) SendInputText(u *tg.Update, text string) error { //italic Markdown
+	msg := tg.NewMessage(u.FromChat().ID, "_"+text+"_")
+	msg.ParseMode = tg.ModeMarkdown
+	_, err := a.Send(msg)
+	return err
+}
+
 func (a API) DelMes(u *tg.Update) error {
 	delete := tg.NewDeleteMessage(u.FromChat().ID, u.CallbackQuery.Message.MessageID)
 	if _, err := tgBot.API.Request(delete); err != nil {

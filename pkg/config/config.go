@@ -32,6 +32,8 @@ type Buttons struct {
 
 type Response struct {
 	Start          string `mapstructure:"start"`
+	Cancel         string `mapstructure:"cancel"`
+	Unknown_start  string `mapstructure:"unknown_start"`
 	Unknown_cmd    string `mapstructure:"unknown_cmd"`
 	Unknown_ms     string `mapstructure:"unknown_ms"`
 	Cache_ttl      string `mapstructure:"cache_ttl"`

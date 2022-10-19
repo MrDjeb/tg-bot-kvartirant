@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -23,21 +24,21 @@ func (r *UnknownStart) Action(u *tg.Update) error {
 
 	byteToken, err := base64.StdEncoding.DecodeString(u.Message.CommandArguments())
 	if err != nil { //error broke
-		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк. (err1)")
+		return tgBot.API.SendText(u, tgBot.Text.Response.Unknown_start+"(err1)")
 	}
 	token := string(byteToken)
 	idAdmin, err := strconv.ParseInt(token[32:], 10, 64)
 	if err != nil { //error broke
-		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк. (err2)")
+		return tgBot.API.SendText(u, tgBot.Text.Response.Unknown_start+"(err2)")
 	}
 
 	d, ok := tgBot.Admin.Cache.(*AdminCacher).Get(idAdmin)
 	if !ok {
-		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк. (err3),Кэш с таким idAdmin пуст.")
+		return tgBot.API.SendText(u, tgBot.Text.Response.Unknown_start+"(err3),Кэш с таким idAdmin пуст.")
 	}
 	number, ok := d.AddingRooms[token]
 	if !ok {
-		return tgBot.API.SendText(u, "Ссылка не валидная или её срок годности истёк. (err4)")
+		return tgBot.API.SendText(u, tgBot.Text.Response.Unknown_start+"(err4)")
 	}
 	delete(d.AddingRooms, token)
 	tgBot.Admin.Cache.Put(idAdmin, d)
@@ -84,7 +85,7 @@ func (r *GodMode) Action(u *tg.Update) error {
 type UnknownUnknownCmd struct{ CommandResponser }
 
 func (r *UnknownUnknownCmd) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "Обратитесь к администратору для регистрации. Вы не авторезированный пользователь.")
+	msg := tg.NewMessage(u.FromChat().ID, "Обратитесь к администратору для регистрации. Вы не авторизированный пользователь.")
 	msg.ReplyMarkup = tg.NewRemoveKeyboard(false)
 	_, err := tgBot.API.Send(msg)
 	return err
@@ -111,7 +112,10 @@ func (r *TenantCancel) Action(u *tg.Update) error {
 		d.Erase()
 		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
 	}
-	return tgBot.API.SendText(u, "Операци отменена")
+	msg := tg.NewMessage(u.FromChat().ID, tgBot.Text.Response.Cancel)
+	msg.ParseMode = tg.ModeMarkdownV2
+	_, err := tgBot.API.Send(msg)
+	return err
 }
 
 type TenantUnknownCmd struct{ CommandResponser }
@@ -238,7 +242,7 @@ func (r *Hot_w2) Callback(u *tg.Update) error {
 	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, tgBot.Text.Response.Water2_inp); err != nil {
+	if err := tgBot.API.SendInputText(u, tgBot.Text.Response.Water2_inp); err != nil {
 		return err
 	}
 
@@ -263,7 +267,7 @@ func (r *Cold_w2) Callback(u *tg.Update) error {
 	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, tgBot.Text.Response.Water2_inp); err != nil {
+	if err := tgBot.API.SendInputText(u, tgBot.Text.Response.Water2_inp); err != nil {
 		return err
 	}
 
@@ -287,7 +291,7 @@ func (r *Amount2) Callback(u *tg.Update) error {
 	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, tgBot.Text.Response.Amount2_inp); err != nil {
+	if err := tgBot.API.SendInputText(u, tgBot.Text.Response.Amount2_inp); err != nil {
 		return err
 	}
 
@@ -311,7 +315,7 @@ func (r *Receipt2) Callback(u *tg.Update) error {
 	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Прикрепите изображение квитанции, подтверждающее факт оплаты."); err != nil {
+	if err := tgBot.API.SendInputText(u, "Прикрепите изображение квитанции, подтверждающее факт оплаты."); err != nil {
 		return err
 	}
 
@@ -330,7 +334,7 @@ type Month2 struct {
 }
 
 func (r *Month2) Callback(u *tg.Update) error {
-	if err := tgBot.API.AnsCallback(u, "Choosen..."); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Selected..."); err != nil {
 		return err
 	}
 	if err := tgBot.API.DelMes(u); err != nil {
@@ -469,7 +473,10 @@ func (r *AdminCancel) Action(u *tg.Update) error {
 		d.Is = ""
 		tgBot.Admin.Cache.Put(u.FromChat().ID, d)
 	}
-	return tgBot.API.SendText(u, "Операция отменена")
+	msg := tg.NewMessage(u.FromChat().ID, tgBot.Text.Response.Cancel)
+	msg.ParseMode = tg.ModeMarkdownV2
+	_, err := tgBot.API.Send(msg)
+	return err
 }
 
 type AdminUnknownCmd struct{ CommandResponser }
@@ -591,7 +598,7 @@ func (r *Contacts2) Callback(u *tg.Update) error {
 	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введите @username"); err != nil {
+	if err := tgBot.API.SendInputText(u, "Введите @username"); err != nil {
 		return err
 	}
 
@@ -613,7 +620,7 @@ func (r *AddRoom3) Callback(u *tg.Update) error {
 	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введите номер комнаты, который хотите добавить"); err != nil {
+	if err := tgBot.API.SendInputText(u, "Введите номер комнаты, который хотите добавить"); err != nil {
 		return err
 	}
 
@@ -639,7 +646,7 @@ func (r *Reminder2) Callback(u *tg.Update) error {
 	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введите сообщение, копию которого хотите разослать:"); err != nil {
+	if err := tgBot.API.SendInputText(u, "Введите сообщение, копию которого хотите разослать:"); err != nil {
 		return err
 	}
 
@@ -664,7 +671,7 @@ func (r *ReminderEdit3) Callback(u *tg.Update) error {
 	if err := tgBot.API.DelMes(u); err != nil {
 		return err
 	}
-	if err := tgBot.API.SendText(u, "Введите сообщение, копию которого хотите разослать:"); err != nil {
+	if err := tgBot.API.SendInputText(u, "Введите сообщение, копию которого хотите разослать:"); err != nil {
 		return err
 	}
 
@@ -713,7 +720,7 @@ func (r *ReminderSend3) Action(u *tg.Update) error {
 		}
 	}
 
-	return tgBot.API.SendText(u, "✅Напоминания отправлены успешно.")
+	return tgBot.API.SendText(u, "✅Напоминания успешно отправлены.")
 }
 
 type RemoveRoom3 struct{ InbuttonResponser }
@@ -729,7 +736,7 @@ func (r *RemoveRoom3) Callback(u *tg.Update) error {
 }
 
 func (r *RemoveRoom3) Action(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, "❌Выберите какую комнату удалить➩\n")
+	msg := tg.NewMessage(u.FromChat().ID, "❌Выберите, какую комнату хотите удалить➩\n")
 
 	fNum, fData, err := getFormatRooms(u.FromChat().ID, tgBot.Text.Admin.Settings.Edit.Removing4)
 	if err != nil {
@@ -752,7 +759,7 @@ type Removing4 struct {
 }
 
 func (r *Removing4) Callback(u *tg.Update) error {
-	if err := tgBot.API.AnsCallback(u, "Choosen..."); err != nil {
+	if err := tgBot.API.AnsCallback(u, "Chosen..."); err != nil {
 		return err
 	}
 	if err := tgBot.API.DelMes(u); err != nil {
@@ -836,6 +843,7 @@ func (r *ShowScorer33) Action(u *tg.Update) error {
 	if len(scorers) == 0 {
 		return tgBot.API.SendText(u, "Пользователь пока ничего не вносил.")
 	}
+	sort.Slice(scorers, func(i, j int) bool { return scorers[i].Date > scorers[j].Date })
 
 	flag := len(scorers) > tgBot.Text.Constants.MAX_SHOW_SCORER
 	if flag {
@@ -878,6 +886,7 @@ func (r *ShowScorerN4) Action(u *tg.Update) error {
 	if err != nil {
 		return err
 	}
+	sort.Slice(scorers, func(i, j int) bool { return scorers[i].Date > scorers[j].Date })
 
 	Emsg := tg.NewEditMessageTextAndMarkup(u.FromChat().ID, u.CallbackQuery.Message.MessageID, "🗝 **〈"+num+"〉**  ♨/💧\n"+getScorerTable(&scorers, false), tg.InlineKeyboardMarkup(r.But))
 	Emsg.ParseMode = tg.ModeMarkdown
@@ -910,6 +919,7 @@ func (r *ShowScorerB3) Action(u *tg.Update) error {
 	if err != nil {
 		return err
 	}
+	sort.Slice(scorers, func(i, j int) bool { return scorers[i].Date > scorers[j].Date })
 	scorers = scorers[:tgBot.Text.Constants.MAX_SHOW_SCORER]
 
 	Emsg := tg.NewEditMessageTextAndMarkup(u.FromChat().ID, u.CallbackQuery.Message.MessageID, "🗝 **〈"+num+"〉**  ♨/💧\n"+getScorerTable(&scorers, true), tg.InlineKeyboardMarkup(r.But))
@@ -1174,17 +1184,12 @@ func (r *RemoveTenants4) Callback(u *tg.Update) error { ////////////////////////
 		return err
 	}
 
-	/*txt := string(u.CallbackQuery.Message.Text) + "\n\n _Скопируйте и введите (tg:ID) нужного квартиранта:_"
-
-	Emsg := tg.NewEditMessageText(u.FromChat().ID, u.CallbackQuery.Message.MessageID, txt)
-	Emsg.ParseMode = tg.ModeMarkdown*/
 	Emsg := tg.NewEditMessageReplyMarkup(u.FromChat().ID, u.CallbackQuery.Message.MessageID, tg.InlineKeyboardMarkup{InlineKeyboard: make([][]tg.InlineKeyboardButton, 0)})
 	if _, err := tgBot.API.Send(Emsg); err != nil {
 		return err
 	}
-	msg := tg.NewMessage(u.FromChat().ID, "\n\n _Скопируйте и введите (tg:ID) нужного квартиранта:_")
-	msg.ParseMode = tg.ModeMarkdown
-	if _, err := tgBot.API.Send(msg); err != nil {
+
+	if err := tgBot.API.SendInputText(u, "Скопируйте и введите (tg:ID) нужного квартиранта:"); err != nil {
 		return err
 	}
 

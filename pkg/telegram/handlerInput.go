@@ -396,7 +396,7 @@ func (r *Receipt2) HandleInput(u *tg.Update) error {
 		}
 	} else {
 		tgBot.Tenant.Cache.Put(u.FromChat().ID, d)
-		if err := tgBot.API.SendText(u, "Скрин оплаты добавлен."); err != nil {
+		if err := tgBot.API.SendText(u, "Скриншот оплаты добавлен."); err != nil {
 			return err
 		}
 		if err := tgBot.Tenant.Handler.(*TenantHandler).HandlerResponse.But[tgBot.Text.Tenant.Receipt1].Action(u); err != nil {
@@ -481,7 +481,7 @@ func (r *AddRoom3) HandleInput(u *tg.Update) error {
 }
 
 func (r *Reminder2) HandleInput(u *tg.Update) error {
-	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf("Данное сообщение будет разослано: {->\n\n%s\n\n<-}", u.Message.Text))
+	msg := tg.NewMessage(u.FromChat().ID, fmt.Sprintf("Будет разослано данное сообщение: {->\n\n%s\n\n<-}", u.Message.Text))
 	msg.ReplyMarkup = r.But
 	tgBot.API.Send(msg)
 
