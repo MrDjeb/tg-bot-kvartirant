@@ -353,6 +353,9 @@ func getFormatRooms(idTg int64, prefix string) (fNum [][]string, fData [][]strin
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(rooms) == 0 {
+		return fNum, fData, nil
+	}
 
 	mapNumbers := make(map[string]int)
 	for _, room := range rooms {

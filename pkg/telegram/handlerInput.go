@@ -91,7 +91,10 @@ func getFormatPayment(prefix string, payments *[]database.Payment) (fNum [][]str
 	fNum, fData = make([][]string, len(m)), make([][]string, len(m))
 	for i, k := range keys {
 		fNum[i], fData[i] = make([]string, 1), make([]string, 1)
-		fNum[i][0] = fmt.Sprintf("`%s x%d`", k, m[k])
+		fNum[i][0] = k
+		if m[k] > 1 {
+			fNum[i][0] += "x" + strconv.Itoa(m[k])
+		}
 		fData[i][0] = prefix + keyboard.DEL + k
 	}
 
@@ -154,7 +157,7 @@ func (r *Hot_w2) HandleInput(u *tg.Update) error {
 		if err := tgBot.DB.Scorer.UpdateHot_w(num, scoreDB, dateDB); err != nil {
 			return err
 		}
-		if err := tgBot.API.SendText(u, fmt.Sprintf(tgBot.Text.Response.Water2_change, num, dateDB)); err != nil {
+		if err := tgBot.API.SendText(u, fmt.Sprintf(tgBot.Text.Response.Water2_h_change, num, dateDB)); err != nil {
 			return err
 		}
 
@@ -235,7 +238,7 @@ func (b *Cold_w2) HandleInput(u *tg.Update) error {
 		if err := tgBot.DB.Scorer.UpdateCold_w(num, scoreDB, dateDB); err != nil {
 			return err
 		}
-		if err := tgBot.API.SendText(u, fmt.Sprintf(tgBot.Text.Response.Water2_change, num, dateDB)); err != nil {
+		if err := tgBot.API.SendText(u, fmt.Sprintf(tgBot.Text.Response.Water2_c_change, num, dateDB)); err != nil {
 			return err
 		}
 		if d, ok := tgBot.Tenant.Cache.(*TenantCacher).Get(u.FromChat().ID); ok {

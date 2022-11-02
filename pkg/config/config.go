@@ -31,27 +31,28 @@ type Buttons struct {
 }
 
 type Response struct {
-	Start          string `mapstructure:"start"`
-	Cancel         string `mapstructure:"cancel"`
-	Unknown_start  string `mapstructure:"unknown_start"`
-	Unknown_cmd    string `mapstructure:"unknown_cmd"`
-	Unknown_ms     string `mapstructure:"unknown_ms"`
-	Cache_ttl      string `mapstructure:"cache_ttl"`
-	Water1_first   string `mapstructure:"water1_first"`
-	Water1_sec     string `mapstructure:"water1_sec"`
-	Water2_inp     string `mapstructure:"water2_inp"`
-	Water2_change  string `mapstructure:"water2_change"`
-	Water2_saved   string `mapstructure:"water2_saved"`
-	Receipt1_first string `mapstructure:"receipt1_first"`
-	Receipt1_sec   string `mapstructure:"receipt1_sec"`
-	Receipt1_third string `mapstructure:"receipt1_third"`
-	Amount2_inp    string `mapstructure:"amount2_inp"`
-	Receipt2_saved string `mapstructure:"receipt2_saved"`
-	Report1_info   string `mapstructure:"report1_info"`
-	Rooms1_list    string `mapstructure:"rooms1_list"`
-	Rooms1_nil     string `mapstructure:"rooms1_nil"`
-	Settings1      string `mapstructure:"settings1"`
-	Room2          string `mapstructure:"room2"`
+	Start           string `mapstructure:"start"`
+	Cancel          string `mapstructure:"cancel"`
+	Unknown_start   string `mapstructure:"unknown_start"`
+	Unknown_cmd     string `mapstructure:"unknown_cmd"`
+	Unknown_ms      string `mapstructure:"unknown_ms"`
+	Cache_ttl       string `mapstructure:"cache_ttl"`
+	Water1_first    string `mapstructure:"water1_first"`
+	Water1_sec      string `mapstructure:"water1_sec"`
+	Water2_inp      string `mapstructure:"water2_inp"`
+	Water2_h_change string `mapstructure:"Water2_h_change"`
+	Water2_c_change string `mapstructure:"Water2_c_change"`
+	Water2_saved    string `mapstructure:"water2_saved"`
+	Receipt1_first  string `mapstructure:"receipt1_first"`
+	Receipt1_sec    string `mapstructure:"receipt1_sec"`
+	Receipt1_third  string `mapstructure:"receipt1_third"`
+	Amount2_inp     string `mapstructure:"amount2_inp"`
+	Receipt2_saved  string `mapstructure:"receipt2_saved"`
+	Report1_info    string `mapstructure:"report1_info"`
+	Rooms1_list     string `mapstructure:"rooms1_list"`
+	Rooms1_nil      string `mapstructure:"rooms1_nil"`
+	Settings1       string `mapstructure:"settings1"`
+	Room2           string `mapstructure:"room2"`
 }
 
 type CommonCommand struct {

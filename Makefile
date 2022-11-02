@@ -14,3 +14,6 @@ start-container:
 
 push:
 	go mod tidy | git add . | git commit | git push
+
+build-image-r:
+	docker build --platform linux/arm64/v8 -t mrdjeb/tg-bot-kvartirant:1.4 .
