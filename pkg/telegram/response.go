@@ -1189,7 +1189,7 @@ func (r *RemoveTenants4) Callback(u *tg.Update) error { ////////////////////////
 		return err
 	}
 
-	if err := tgBot.API.SendInputText(u, "Скопируйте и введите (tg:ID) нужного квартиранта:"); err != nil {
+	if err := tgBot.API.SendInputText(u, "Скопируйте Telegram ID нужного квартиранта (выберите в списке и нажмите), затем вставьте и отправьте его:"); err != nil {
 		return err
 	}
 
@@ -1225,7 +1225,7 @@ func DeleteRoom(num database.Number) error {
 }
 
 func DeleteTenant(tgid database.TelegramID) error {
-	num, err := tgBot.DB.Room.GetRoom(tgid)
+	/*num, err := tgBot.DB.Room.GetRoom(tgid)
 	if err != nil {
 		return err
 	}
@@ -1236,7 +1236,7 @@ func DeleteTenant(tgid database.TelegramID) error {
 	}
 	if len(rooms) == 1 {
 		return DeleteRoom(num)
-	}
+	}*/
 	if err := tgBot.DB.Room.DeleteTenant(tgid); err != nil {
 		return err
 	}
